@@ -1,7 +1,7 @@
 replicaCount: 1
 image:
-  repository: dsfdfe3423423/broker-middleware
-  tag: v1
+  repository: ""
+  tag: ""
 service:
   type: ClusterIP
   port: 5000

@@ -17,3 +17,12 @@ spec:
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
           ports:
             - containerPort: 5000
+                  env:
+                  - name: API_KEY
+                    value: {{ .Values.env.API_KEY | quote }}
+                  - name: API_SECRET
+                    value: {{ .Values.env.API_SECRET | quote }}
+                  - name: ACCESS_TOKEN
+                    value: {{ .Values.env.ACCESS_TOKEN | quote }}
+                  - name: USER_ID
+                    value: {{ .Values.env.USER_ID | quote }}
