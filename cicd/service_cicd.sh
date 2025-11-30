@@ -10,6 +10,7 @@ echo "Using password: ${DOCKER_PASSWORD}"
 SERVICE="$1"
 TAG="$2"
 NAMESPACE="$3"
+
 SERVICE_DIR="../service/$SERVICE/"
 HELM_DIR="../helm/$SERVICE/"
 
