@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broker-middleware
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: broker-middleware
+  template:
+    metadata:
+      labels:
+        app: broker-middleware
+    spec:
+      containers:
+        - name: broker-middleware
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          ports:
+            - containerPort: 5000
