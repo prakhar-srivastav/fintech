@@ -7,8 +7,8 @@ import os
 logging.basicConfig(level=logging.DEBUG)
 
 # Initialize Kite Connect
-API_KEY = os.environ.get("API_KEY")
-API_SECRET = os.environ.get("API_SECRET")
+API_KEY = os.getenv("KITE_API_KEY")
+API_SECRET = os.getenv("KITE_API_SECRET")
 
 # Initialize Kite Connect
 kite = KiteConnect(api_key=API_KEY)
@@ -60,7 +60,7 @@ try:
     profile = kite.profile()
     print(f"✓ Connected successfully as: {profile['user_name']}")
     print("-" * 60)
-    
+
 except Exception as e:
     print(f"\n✗ Error: {e}")
     print("\nCommon issues:")

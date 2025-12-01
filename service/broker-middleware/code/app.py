@@ -17,8 +17,6 @@ ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
 
 # Global fetcher instance
 fetcher = KiteDataFetcher(
-    api_key=API_KEY,
-    access_token=ACCESS_TOKEN,
     data_folder='data',
     granularity='5minute'
 )

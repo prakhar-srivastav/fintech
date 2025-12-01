@@ -9,7 +9,7 @@
 	4. p2-runner -> responsible for the run of a schedule. It can be argo job - tbd. It also interacts with the 	ingester or broker if needed to make the transaction and will keep the db schedule updated.
 	5. playground -> interactive graph based p2 strategy visualizer
 5. Ingester [POD] -> fills the data into db and have a lock
-6. Broker [POD] -> for creating the transaction
+6. Broker [POD] -> for creating the transaction and reading the stocks data
 7. DB and DBwriter [PODS] -> db layer
 8. Graph Visualizer [POD] -> for search,filter and finding the stock performace
 9. Ingress / HProxy -> public routing
