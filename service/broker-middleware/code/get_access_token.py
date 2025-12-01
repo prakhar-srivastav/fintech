@@ -7,8 +7,8 @@ import os
 logging.basicConfig(level=logging.DEBUG)
 
 # Initialize Kite Connect
-API_KEY = os.environ.get("KITE_API_KEY")
-API_SECRET = os.environ.get("KITE_API_SECRET")
+API_KEY = os.environ.get("API_KEY")
+API_SECRET = os.environ.get("API_SECRET")
 
 # Initialize Kite Connect
 kite = KiteConnect(api_key=API_KEY)

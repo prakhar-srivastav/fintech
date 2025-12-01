@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import os
 import time
 from typing import List, Optional, Dict, Tuple
-
+import sys
 
 class KiteDataFetcher:
     """A class to fetch stock data from Kite Connect API"""
@@ -261,8 +261,8 @@ def main():
     """Main entry point with CLI interface"""
     
     # Configuration
-    API_KEY = 'ljz7f8iqzy7ppkti'
-    ACCESS_TOKEN = 'xigIJrsOxhEb7tAK5qC5cHDvcc7EvFsO'
+    API_KEY = os.environ.get('API_KEY')
+    ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
     
     # Create fetcher instance
     fetcher = KiteDataFetcher(

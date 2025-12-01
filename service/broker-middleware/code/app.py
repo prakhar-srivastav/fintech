@@ -12,8 +12,8 @@ from fetch import KiteDataFetcher
 app = Flask(__name__)
 
 # Configuration
-API_KEY = os.environ.get('KITE_API_KEY')
-ACCESS_TOKEN = os.environ.get('KITE_ACCESS_TOKEN')
+API_KEY = os.environ.get('API_KEY')
+ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
 
 # Global fetcher instance
 fetcher = KiteDataFetcher(
