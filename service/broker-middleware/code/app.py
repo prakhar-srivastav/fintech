@@ -7,16 +7,19 @@ import time
 from typing import List, Optional, Dict, Tuple
 import threading
 from fetch import KiteDataFetcher
+from refresh_access_token import refresh_access_token
 
 # Flask App
 app = Flask(__name__)
 
 # Configuration
 API_KEY = os.environ.get('API_KEY')
-ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
+ACCESS_TOKEN = refresh_access_token()
 
 # Global fetcher instance
 fetcher = KiteDataFetcher(
+    api_key=API_KEY,
+    access_token=ACCESS_TOKEN,
     data_folder='data',
     granularity='5minute'
 )
