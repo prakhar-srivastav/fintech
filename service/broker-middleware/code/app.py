@@ -14,12 +14,11 @@ app = Flask(__name__)
 
 # Configuration
 API_KEY = os.environ.get('API_KEY')
-ACCESS_TOKEN = refresh_access_token()
 
 # Global fetcher instance
 fetcher = KiteDataFetcher(
     api_key=API_KEY,
-    access_token=ACCESS_TOKEN,
+    access_token=refresh_access_token(),
     data_folder='data',
     granularity='5minute'
 )
@@ -299,6 +298,12 @@ def index():
 def status():
     """Check connection status"""
     result = fetcher.test_connection()
+    if not result['success']:
+        print(f"Connection error: {e}")
+        print("Refreshing access token and retrying...")
+        # Refresh access token and retry
+        fetcher.access_token = refresh_access_token()
+    result = fetcher.test_connection()
     return jsonify(result)
 
 
@@ -318,15 +323,27 @@ def fetch_data():
         fetcher.granularity = granularity
         
         # Fetch data (this will block until complete)
-        result = fetcher.fetch_stock_data(
-            stocks=stocks,
-            start_date=start_date,
-            end_date=end_date,
-            exchanges=exchanges if exchanges else None
-        )
-        
+        try:
+            result = fetcher.fetch_stock_data(
+                stocks=stocks,
+                start_date=start_date,
+                end_date=end_date,
+                exchanges=exchanges if exchanges else None
+            )
+        except Exception as e:
+            print(f"Error during fetch: {e}")
+            print("Refreshing access token and retrying...")
+            # Refresh access token and retry
+            fetcher.access_token = refresh_access_token()
+            result = fetcher.fetch_stock_data(
+                stocks=stocks,
+                start_date=start_date,
+                end_date=end_date,
+                exchanges=exchanges if exchanges else None
+            )
+
         return jsonify(result)
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

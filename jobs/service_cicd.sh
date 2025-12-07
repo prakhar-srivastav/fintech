@@ -4,8 +4,6 @@
 source ../values/values.properties
 
 echo "Logging into Docker registry: ${DOCKER_REGISTRY}"
-echo "Using username: ${DOCKER_USERNAME}"
-echo "Using password: ${DOCKER_PASSWORD}"
 
 SERVICE="$1"
 TAG="$2"

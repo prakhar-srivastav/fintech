@@ -8,10 +8,10 @@ import os
 
 
 API_KEY = os.getenv("API_KEY")
-USER_NAME = os.getenv("USERNAME")
+USER_NAME = os.getenv("USER_NAME")
 PASSWORD = os.getenv("PASSWORD")
 TOTP_KEY = os.getenv("TOTP_KEY")
-API_SECRET = os.getenv("API_SECRET")    
+API_SECRET = os.getenv("API_SECRET")
 
 def refresh_access_token() -> str:
     """Use provided credentials and return access token.
@@ -54,4 +54,3 @@ def refresh_access_token() -> str:
     data = kite.generate_session(request_token, api_secret=API_SECRET)
 
     return data["access_token"]
-

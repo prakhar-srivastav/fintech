@@ -22,9 +22,9 @@ spec:
               value: {{ .Values.env.API_KEY | quote }}
             - name: API_SECRET
               value: {{ .Values.env.API_SECRET | quote }}
-            - name: USER_ID
-              value: {{ .Values.env.USER_ID | quote }}
-            - name: LOGIN_PASSWORD
-              value: {{ .Values.env.LOGIN_PASSWORD | quote }}
+            - name: USER_NAME
+              value: {{ .Values.env.USER_NAME | quote }}
+            - name: PASSWORD
+              value: {{ .Values.env.PASSWORD | quote }}
             - name: TOTP_KEY
               value: {{ .Values.env.TOTP_KEY | quote }}
