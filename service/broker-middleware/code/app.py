@@ -299,7 +299,7 @@ def status():
     """Check connection status"""
     result = fetcher.test_connection()
     if not result['success']:
-        print(f"Connection error: {e}")
+        print(f"Connection error: {result['error']}")
         print("Refreshing access token and retrying...")
         # Refresh access token and retry
         fetcher.access_token = refresh_access_token()
