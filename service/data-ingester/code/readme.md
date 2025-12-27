@@ -4,8 +4,8 @@
         {
             "start_date": "2024-01-01",
             "end_date": "2024-01-10",
-            "stocks": "AAPL",
-            "exchanges": "NASDAQ",
+            "stocks": "RELIANCE",
+            "exchanges": "NSE",
         }
     ]
 }'
