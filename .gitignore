@@ -2,4 +2,4 @@
 fintech/
 values/**/values.yaml
 values/values.properties
-data-ingester/code/data-ingester/
+service/data-ingester/code/data-ingester/
