@@ -6,7 +6,7 @@ import os
 import time
 from typing import List, Optional, Dict, Tuple
 import threading
-from fetch import KiteDataFetcher
+from fetcher import KiteDataFetcher
 from refresh_access_token import refresh_access_token
 
 # Flask App
@@ -25,7 +25,6 @@ fetcher = KiteDataFetcher(
 
 # Store job status
 job_status = {}
-
 
 # HTML Template
 HTML_TEMPLATE = '''
@@ -234,7 +233,7 @@ HTML_TEMPLATE = '''
             };
             
             try {
-                const res = await fetch('/api/fetch', {
+                const res = await fetch('/api/data', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -287,12 +286,10 @@ HTML_TEMPLATE = '''
 </html>
 '''
 
-
 @app.route('/')
 def index():
     """Serve the HTML form"""
     return render_template_string(HTML_TEMPLATE)
-
 
 @app.route('/api/status', methods=['GET'])
 def status():
@@ -306,19 +303,16 @@ def status():
     result = fetcher.test_connection()
     return jsonify(result)
 
-
-@app.route('/api/fetch', methods=['POST'])
+@app.route('/api/data', methods=['POST'])
 def fetch_data():
     """Fetch stock data"""
     try:
         data = request.get_json()
-        
         stocks = data.get('stocks')
         start_date = data.get('start_date')
         end_date = data.get('end_date')
         exchanges = data.get('exchanges')
         granularity = data.get('granularity', '5minute')
-        
         # Update fetcher granularity
         fetcher.granularity = granularity
         
@@ -347,7 +341,6 @@ def fetch_data():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/exchanges', methods=['GET'])
 def get_exchanges():
     """Get available exchanges"""
@@ -355,6 +348,21 @@ def get_exchanges():
         'exchanges': KiteDataFetcher.EXCHANGES
     })
 
+@app.route('/api/symbols', defaults={'exchange': None}, methods=['GET'])
+@app.route('/api/symbols/<exchange>', methods=['GET'])
+def get_symbols(exchange):
+    """Get available symbols"""
+    if exchange:
+        instruments = fetcher.fetch_instrument_from_exchange(exchange)
+    else:
+        # Fetch all instruments from all exchanges
+        instruments = fetcher.fetch_all_instruments()
+    symbols = [inst['tradingsymbol'] for inst in instruments]
+    tokens = [inst['instrument_token'] for inst in instruments]
+    return jsonify({
+        'symbols': symbols,
+        'tokens': tokens
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)

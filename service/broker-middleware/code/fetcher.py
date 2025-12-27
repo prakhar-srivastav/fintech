@@ -47,6 +47,18 @@ class KiteDataFetcher:
                 'error': str(e)
             }
     
+    def fetch_instrument_from_exchange(
+        self, 
+        exchange: str
+    ) -> List[Dict]:
+        """Fetch instruments from a specific exchange"""
+        try:
+            instruments = self.kite.instruments(exchange)
+            return instruments
+        except Exception as e:
+            print(f"Error fetching {exchange}: {e}")
+            return []
+
     def fetch_all_instruments(self) -> List[Dict]:
         """Fetch all available instruments"""
         if self._instruments_cache:
@@ -54,11 +66,8 @@ class KiteDataFetcher:
         
         all_instruments = []
         for exchange in self.exchanges:
-            try:
-                instruments = self.kite.instruments(exchange)
-                all_instruments.extend(instruments)
-            except Exception as e:
-                print(f"Error fetching {exchange}: {e}")
+            instruments = self.fetch_instrument_from_exchange(exchange)
+            all_instruments.extend(instruments)
         
         self._instruments_cache = all_instruments
         return all_instruments
@@ -148,7 +157,7 @@ class KiteDataFetcher:
             os.makedirs(self.data_folder)
         
         df = pd.DataFrame(data)
-        filename = f"{self.data_folder}/{symbol}_{exchange}.csv"
+        filename = f"{self.data_folder}/{symbol}_{exchange}_{int(time.time())}.csv"
         df.to_csv(filename, index=False)
         return True
     
@@ -218,7 +227,7 @@ class KiteDataFetcher:
         successful = 0
         failed = 0
         not_found = 0
-        
+        data_map = {}
         for symbol in stock_list:
             if stock_map and symbol in stock_map:
                 found_any = False
@@ -227,7 +236,12 @@ class KiteDataFetcher:
                     if data:
                         if self.save_to_csv(symbol, data, exchange):
                             found_any = True
-                
+                            data_map[symbol] = {
+                            'data': data,
+                            'exchange': exchange,
+                            'granularity': self.granularity,
+                            }
+
                 if found_any:
                     successful += 1
                 else:
@@ -243,17 +257,24 @@ class KiteDataFetcher:
                 
                 if data:
                     if self.save_to_csv(symbol, data, found_exchange):
+                        data_map[symbol] = {
+                            'data': data,
+                            'exchange': found_exchange,
+                            'granularity': self.granularity,
+                        }
                         successful += 1
                     else:
                         failed += 1
                 else:
                     failed += 1
         
+        
         return {
             'successful': successful,
             'failed': failed,
             'not_found': not_found,
-            'total': len(stock_list)
+            'total': len(stock_list),
+            'data': data_map,
         }
 
 
