@@ -9,20 +9,6 @@ import mysql.connector
 
 app = Flask(__name__)
 
-'''
-
-prakharsrivastava@Prakhars-MacBook-Pro-2 fintech % curl -X POST http://localhost:8080/api/data \
--H "Content-Type: application/json" \
--d '{
-    "stocks": ["RELIANCE"],
-    "start_date": "2025-01-19",
-    "end_date": "2025-12-22",
-    "exchanges": ["NSE","BSE"],
-    "granularity": "5minute"
-}'
-
-'''
-
 BROKER_MIDDLEWARE_URL = os.environ.get("BROKER_MIDDLEWARE_URL", "http://localhost:51038")
 DB_CONFIG = {
     'host': os.environ.get('DB_HOST', 'localhost'),
@@ -32,12 +18,12 @@ DB_CONFIG = {
     'port': int(os.environ.get('DB_PORT', '3306'))
 }
 
-def fetch_from_broker(start_date, end_date, symbols, exchange, granularity):
+def fetch_from_broker_middleware(start_date, end_date, stocks, exchange, granularity):
     url = f"http://{BROKER_MIDDLEWARE_URL}/data"
     params = {
         'start_date': start_date,
         'end_date': end_date,
-        'symbols': symbols,
+        'stocks': stocks,
         'exchange': exchange,
         'granularity': granularity
     }
@@ -49,25 +35,25 @@ def update_db(data):
     conn = mysql.connector.connect(**DB_CONFIG)
     cursor = conn.cursor()
     for row in data:
-        symbol = row.get('symbol')
+        stocks = row.get('stocks')
         exchange = row.get('exchange')
         date = row.get('when_added')
         granularity = row.get('granularity')
         cursor.execute(
             "SELECT 1 FROM broker_data WHERE symbol=%s AND exchange=%s AND when_added=%s AND granularity=%s",
-            (symbol, exchange, date, granularity)
+            (stocks, exchange, date, granularity)
         )
         exists = cursor.fetchone()
         if not exists:
             cursor.execute(
                 """
                 INSERT INTO broker_data 
-                (when_added, symbol, exchange, open, close, low, high, volume, broker_name, granularity)
+                (when_added, stocks, exchange, open, close, low, high, volume, broker_name, granularity)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     row.get('when_added'),
-                    symbol,
+                    stocks,
                     exchange,
                     row.get('open'),
                     row.get('close'),
@@ -82,33 +68,33 @@ def update_db(data):
     cursor.close()
     conn.close()
 
-def validate_if_data_exists(start_date, end_date, symbols, exchange, granularity):
+def validate_if_data_exists(start_date, end_date, stocks, exchange, granularity):
     conn = mysql.connector.connect(**DB_CONFIG)
     cursor = conn.cursor()
     query = """
     SELECT COUNT(*) FROM broker_data
     WHERE symbol = %s AND exchange = %s AND when_added >= %s AND when_added <= %s AND granularity = %s
     """
-    cursor.execute(query, (symbols, exchange, start_date, end_date, granularity))
+    cursor.execute(query, (stocks, exchange, start_date, end_date, granularity))
     count = cursor.fetchone()[0]
     cursor.close()
     conn.close()
-    print(f"Data existence check: {count} records found for {symbols} from {start_date} to {end_date}")
-    return count > 0 
+    print(f"Data existence check: {count} records found for {stocks} from {start_date} to {end_date}")
+    return count > 0
 
 def process_data(items):
     for item in items:
         start_date = item.get('start_date', '2024-01-01')
         end_date = item.get('end_date', 'today')
-        symbols = item.get('symbols', None)
+        stocks = item.get('stocks', None)
         exchange = item.get('exchanges', None)
         granularity = item.get('granularity', '5minute')
-        is_present = validate_if_data_exists(start_date, end_date, symbols, exchange, granularity)
+        is_present = validate_if_data_exists(start_date, end_date, stocks, exchange, granularity)
         if is_present:
-            print(f"Data already present for {symbols} from {start_date} to {end_date}. Skipping fetch.")
+            print(f"Data already present for {stocks} from {start_date} to {end_date}. Skipping fetch.")
             continue
         else:
-            data = fetch_from_broker(start_date=start_date, end_date=end_date, symbols=symbols, exchange=exchange, granularity=granularity)
+            data = fetch_from_broker(start_date=start_date, end_date=end_date, stocks=stocks, exchange=exchange, granularity=granularity)
             if data:
                 update_db(data)
 
@@ -127,17 +113,3 @@ def sync():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
-
-"""
-- curl -X POST http://localhost:8000/sync -H "Content-Type: application/json" -d '{
-    "items": [
-        {
-            "start_date": "2024-01-01",
-            "end_date": "2024-01-10",
-            "symbols": "AAPL",
-            "exchanges": "NASDAQ",
-            "granularity": "5minute"
-        }
-    ]
-}'
-"""

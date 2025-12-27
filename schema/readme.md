@@ -1,0 +1,1 @@
+kubectl get secret --namespace database mysql -o jsonpath="{.data.mysql-root-password}" | base64 --decode;
