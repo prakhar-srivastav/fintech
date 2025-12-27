@@ -235,7 +235,10 @@ HTML_TEMPLATE = '''
             try {
                 const res = await fetch('/api/data', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
                     body: JSON.stringify(data)
                 });
                 
@@ -303,40 +306,57 @@ def status():
     result = fetcher.test_connection()
     return jsonify(result)
 
-@app.route('/api/data', methods=['POST'])
+@app.route('/api/data', methods=['GET', 'POST'])
 def fetch_data():
     """Fetch stock data"""
     try:
-        data = request.get_json()
-        stocks = data.get('stocks')
-        start_date = data.get('start_date')
-        end_date = data.get('end_date')
-        exchanges = data.get('exchanges')
-        granularity = data.get('granularity', '5minute')
-        # Update fetcher granularity
-        fetcher.granularity = granularity
-        
-        # Fetch data (this will block until complete)
-        try:
-            result = fetcher.fetch_stock_data(
-                stocks=stocks,
-                start_date=start_date,
-                end_date=end_date,
-                exchanges=exchanges if exchanges else None
-            )
-        except Exception as e:
-            print(f"Error during fetch: {e}")
-            print("Refreshing access token and retrying...")
-            # Refresh access token and retry
-            fetcher.access_token = refresh_access_token()
-            result = fetcher.fetch_stock_data(
-                stocks=stocks,
-                start_date=start_date,
-                end_date=end_date,
-                exchanges=exchanges if exchanges else None
-            )
+        if request.method == 'POST':
+            data = request.get_json(force=True)  # Force JSON parsing
+            stocks = data.get('stocks')
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+            exchanges = data.get('exchanges')
+            granularity = data.get('granularity', '5minute')
+            # Update fetcher granularity
+            fetcher.granularity = granularity
+            
+            # Fetch data (this will block until complete)
+            try:
+                result = fetcher.fetch_stock_data(
+                    stocks=stocks,
+                    start_date=start_date,
+                    end_date=end_date,
+                    exchanges=exchanges if exchanges else None
+                )
+            except Exception as e:
+                print(f"Error during fetch: {e}")
+                print("Refreshing access token and retrying...")
+                # Refresh access token and retry
+                fetcher.access_token = refresh_access_token()
+                result = fetcher.fetch_stock_data(
+                    stocks=stocks,
+                    start_date=start_date,
+                    end_date=end_date,
+                    exchanges=exchanges if exchanges else None
+                )
 
-        return jsonify(result)
+            return jsonify(result)
+
+        elif request.method == 'GET':
+            params = request.args
+            stocks = params.getlist('stocks') or None
+            start_date = params.get('start_date')
+            end_date = params.get('end_date')
+            exchanges = params.getlist('exchanges') or None
+            granularity = params.get('granularity', '5minute')
+            fetcher.granularity = granularity
+            result = fetcher.fetch_stock_data(
+                stocks=stocks,
+                start_date=start_date,
+                end_date=end_date,
+                exchanges=exchanges if exchanges else None
+            )
+            return jsonify(result)
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -366,3 +386,4 @@ def get_symbols(exchange):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)
+

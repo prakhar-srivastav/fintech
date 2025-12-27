@@ -237,7 +237,7 @@ class KiteDataFetcher:
                         if self.save_to_csv(symbol, data, exchange):
                             found_any = True
                             data_map[symbol] = {
-                            'data': data,
+                            'rows': data,
                             'exchange': exchange,
                             'granularity': self.granularity,
                             }
@@ -258,7 +258,7 @@ class KiteDataFetcher:
                 if data:
                     if self.save_to_csv(symbol, data, found_exchange):
                         data_map[symbol] = {
-                            'data': data,
+                            'rows': data,
                             'exchange': found_exchange,
                             'granularity': self.granularity,
                         }
@@ -274,7 +274,7 @@ class KiteDataFetcher:
             'failed': failed,
             'not_found': not_found,
             'total': len(stock_list),
-            'data': data_map,
+            'items': data_map,
         }
 
 

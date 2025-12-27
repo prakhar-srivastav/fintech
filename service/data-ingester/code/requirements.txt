@@ -1,4 +1,3 @@
-altgraph @ file:///AppleInternal/Library/BuildRoots/39d9dc1a-2111-11f0-be06-226177e5bb69/Library/Caches/com.apple.xbs/Sources/python3/altgraph-0.17.2-py2.py3-none-any.whl
 attrs==25.4.0
 autobahn==19.11.2
 Automat==25.4.16
@@ -10,7 +9,6 @@ click==8.1.8
 constantly==23.10.4
 cryptography==46.0.3
 Flask==3.1.1
-future @ file:///AppleInternal/Library/BuildRoots/39d9dc1a-2111-11f0-be06-226177e5bb69/Library/Caches/com.apple.xbs/Sources/python3/future-0.18.2-py3-none-any.whl
 hyperlink==21.0.0
 idna==3.10
 importlib_metadata==8.7.0
@@ -18,7 +16,6 @@ Incremental==24.11.0
 itsdangerous==2.2.0
 Jinja2==3.1.6
 kiteconnect==5.0.1
-macholib @ file:///AppleInternal/Library/BuildRoots/39d9dc1a-2111-11f0-be06-226177e5bb69/Library/Caches/com.apple.xbs/Sources/python3/macholib-1.15.2-py2.py3-none-any.whl
 MarkupSafe==3.0.2
 numpy==2.0.2
 onetimepass==1.0.1
@@ -40,3 +37,4 @@ txaio==23.6.1
 tzdata==2025.2
 urllib3==2.5.0
 mysql-connector-python==9.4.0
+Flask-Limiter

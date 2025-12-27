@@ -1,15 +1,23 @@
 import threading
 import queue
 import time
+from datetime import datetime
 import os
 from flask import Flask, request, jsonify
 import requests
 import sqlite3
 import mysql.connector
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from broker_middleware_client import BrokerMiddlewareClient
 
 app = Flask(__name__)
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour, 10 per minute"]
+)
 
-BROKER_MIDDLEWARE_URL = os.environ.get("BROKER_MIDDLEWARE_URL", "http://localhost:51038")
 DB_CONFIG = {
     'host': os.environ.get('DB_HOST', 'localhost'),
     'user': os.environ.get('DB_USER', 'root'),
@@ -18,49 +26,82 @@ DB_CONFIG = {
     'port': int(os.environ.get('DB_PORT', '3306'))
 }
 
+"""
+TODO: create a db_client.py file to handle all db related operations
+1. insert_data -> the actual query execution to be handled there with date parsing etc
+2. db_config handling
+3. add test for exchange, status, symbols fetching from broker middleware
+4. add other cases where exchange/symbols are not given etc
+5. make it deployable with proper config management
+"""
+
+BROKER_MIDDLEWARE_URL = os.environ.get("BROKER_MIDDLEWARE_URL", "http://localhost:8080")
+
+broker_client = BrokerMiddlewareClient(base_url=BROKER_MIDDLEWARE_URL)
+
 def fetch_from_broker_middleware(start_date, end_date, stocks, exchange, granularity):
-    url = f"http://{BROKER_MIDDLEWARE_URL}/data"
-    params = {
-        'start_date': start_date,
-        'end_date': end_date,
-        'stocks': stocks,
-        'exchange': exchange,
-        'granularity': granularity
-    }
-    response = requests.get(url, params=params)
-    response.raise_for_status()
-    return response.json()
+    return broker_client.fetch_data(
+        stocks=stocks,
+        start_date=start_date,
+        end_date=end_date,
+        exchanges=exchange,
+        granularity=granularity
+    )
+
+def convert_to_mysql_datetime(date_str):
+    try:
+        # Try parsing 'Mon, 20 Jan 2025 03:45:00 GMT' format
+        parsed_date = datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S %Z')
+        record_time = parsed_date.strftime('%Y-%m-%d %H:%M:%S')
+    except (ValueError, TypeError):
+        try:
+            # Try parsing ISO format '2025-01-20T03:45:00'
+            parsed_date = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            record_time = parsed_date.strftime('%Y-%m-%d %H:%M:%S')
+        except (ValueError, TypeError):
+            # Use as-is if already in correct format or None
+            record_time = date_str
+    return record_time
 
 def update_db(data):
     conn = mysql.connector.connect(**DB_CONFIG)
     cursor = conn.cursor()
-    for row in data:
-        stocks = row.get('stocks')
-        exchange = row.get('exchange')
-        date = row.get('when_added')
-        granularity = row.get('granularity')
-        cursor.execute(
-            "SELECT 1 FROM broker_data WHERE symbol=%s AND exchange=%s AND when_added=%s AND granularity=%s",
-            (stocks, exchange, date, granularity)
-        )
-        exists = cursor.fetchone()
-        if not exists:
+    items = data['items']
+    for stocks in items.keys():
+        stocks_data = items[stocks]
+        rows = stocks_data['rows']
+        exchange = stocks_data['exchange']
+        granularity = stocks_data['granularity']
+        for row in rows:
+
+            when_added = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # Parse the date from various formats and convert to MySQL datetime format
+            raw_date = row.get('date')
+            parsed_date = convert_to_mysql_datetime(raw_date)
+            record_time = parsed_date
+            _open = row.get('open')
+            _close = row.get('close')
+            _low = row.get('low')
+            _high = row.get('high')
+            _volume = row.get('volume')
+
             cursor.execute(
                 """
                 INSERT INTO broker_data 
-                (when_added, stocks, exchange, open, close, low, high, volume, broker_name, granularity)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                (when_added, record_time, stocks, exchange, open, close, low, high, volume, broker_name, granularity)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
-                    row.get('when_added'),
+                    when_added,
+                    record_time,
                     stocks,
                     exchange,
-                    row.get('open'),
-                    row.get('close'),
-                    row.get('low'),
-                    row.get('high'),
-                    row.get('volume'),
-                    row.get('broker_name'),
+                    _open,
+                    _close,
+                    _low,
+                    _high,
+                    _volume,
+                    "zerodha",
                     granularity
                 )
             )
@@ -68,45 +109,26 @@ def update_db(data):
     cursor.close()
     conn.close()
 
-def validate_if_data_exists(start_date, end_date, stocks, exchange, granularity):
-    conn = mysql.connector.connect(**DB_CONFIG)
-    cursor = conn.cursor()
-    query = """
-    SELECT COUNT(*) FROM broker_data
-    WHERE symbol = %s AND exchange = %s AND when_added >= %s AND when_added <= %s AND granularity = %s
-    """
-    cursor.execute(query, (stocks, exchange, start_date, end_date, granularity))
-    count = cursor.fetchone()[0]
-    cursor.close()
-    conn.close()
-    print(f"Data existence check: {count} records found for {stocks} from {start_date} to {end_date}")
-    return count > 0
+def process_data(payload):
+    start_date = payload['start_date']
+    end_date = payload['end_date']
+    stocks = payload['stocks']
+    exchange = payload['exchanges']
+    granularity = payload['granularity']
+    data = fetch_from_broker_middleware(start_date=start_date, end_date=end_date, stocks=stocks, exchange=exchange, granularity=granularity)
+    if data:
+        update_db(data)
+    return data
 
-def process_data(items):
-    for item in items:
-        start_date = item.get('start_date', '2024-01-01')
-        end_date = item.get('end_date', 'today')
-        stocks = item.get('stocks', None)
-        exchange = item.get('exchanges', None)
-        granularity = item.get('granularity', '5minute')
-        is_present = validate_if_data_exists(start_date, end_date, stocks, exchange, granularity)
-        if is_present:
-            print(f"Data already present for {stocks} from {start_date} to {end_date}. Skipping fetch.")
-            continue
-        else:
-            data = fetch_from_broker(start_date=start_date, end_date=end_date, stocks=stocks, exchange=exchange, granularity=granularity)
-            if data:
-                update_db(data)
-
-# TODO: limit the rate of requests to this endpoint
 @app.route('/sync', methods=['POST'])
+@limiter.limit("5 per minute")
 def sync():
     try:
         req_data = request.json
         print(f"Received sync request: {req_data}")
-        items = req_data.get('items')
-        process_data(items)
-        return jsonify({"status": "true", "items": items[0]}), 202
+        payload = req_data.get('payload')
+        process_data(payload)
+        return jsonify({"status": "true", "items": payload[0]}), 202
     except Exception as e:
         print(f"Error occurred: {e}")
         return jsonify({"status": "false", "error": str(e)}), 500

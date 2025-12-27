@@ -48,9 +48,13 @@ print(response.json())
 ---
 
 ### 2. Fetch Stock Data
-**Endpoint:** `POST /api/data`
+**Endpoint:** `GET /api/data` or `POST /api/data`
 
 **Description:** Fetch historical stock data for specified stocks, date range, and granularity.
+
+---
+
+#### POST Method
 
 **Request Headers:**
 ```
@@ -66,7 +70,7 @@ Content-Type: application/json
 | `exchanges` | Array of strings | No | List of exchanges (NSE, BSE, NFO, CDS, BCD, MCX) | All exchanges |
 | `granularity` | String | No | Data granularity (minute, 3minute, 5minute, 15minute, 30minute, 60minute, day) | 5minute |
 
-**Request:**
+**cURL Example (POST):**
 ```bash
 curl -X POST http://localhost:8080/api/data \
 -H "Content-Type: application/json" \
@@ -79,7 +83,7 @@ curl -X POST http://localhost:8080/api/data \
 }'
 ```
 
-**Python Example:**
+**Python Example (POST):**
 ```python
 import requests
 import json
@@ -97,15 +101,91 @@ response = requests.post(url, json=payload)
 print(json.dumps(response.json(), indent=2))
 ```
 
+---
+
+#### GET Method
+
+**Query Parameters:**
+| Parameter | Type | Required | Description | Default |
+|-----------|------|----------|-------------|---------|
+| `stocks` | String (repeatable) | No | Stock symbol(s) (e.g., stocks=RELIANCE&stocks=TCS) | null (fetch all) |
+| `start_date` | String (YYYY-MM-DD) | No | Start date for historical data | 2025-01-01 |
+| `end_date` | String (YYYY-MM-DD) | No | End date for historical data | Today |
+| `exchanges` | String (repeatable) | No | Exchange(s) (e.g., exchanges=NSE&exchanges=BSE) | All exchanges |
+| `granularity` | String | No | Data granularity (minute, 3minute, 5minute, 15minute, 30minute, 60minute, day) | 5minute |
+
+**cURL Example (GET):**
+```bash
+curl "http://localhost:8080/api/data?stocks=RELIANCE&stocks=TCS&start_date=2025-01-19&end_date=2025-12-22&exchanges=NSE&exchanges=BSE&granularity=5minute"
+```
+
+**Python Example (GET):**
+```python
+import requests
+import json
+
+url = 'http://localhost:8080/api/data'
+params = {
+    'stocks': ['RELIANCE', 'TCS'],
+    'start_date': '2025-01-19',
+    'end_date': '2025-12-22',
+    'exchanges': ['NSE', 'BSE'],
+    'granularity': '5minute'
+}
+
+response = requests.get(url, params=params)
+print(json.dumps(response.json(), indent=2))
+```
+
+---
+
+#### Response (Both Methods)
+
 **Success Response (200):**
 ```json
 {
+    "items": {
+        "RELIANCE": {
+            "exchange": "NSE",
+            "granularity": "5minute",
+            "rows": [
+                {
+                    "date": "2025-01-19 09:15:00",
+                    "open": 2850.50,
+                    "high": 2860.75,
+                    "low": 2848.25,
+                    "close": 2855.00,
+                    "volume": 125000
+                },
+                {
+                    "date": "2025-01-19 09:20:00",
+                    "open": 2855.00,
+                    "high": 2862.50,
+                    "low": 2853.00,
+                    "close": 2860.25,
+                    "volume": 98000
+                }
+            ]
+        },
+        "TCS": {
+            "exchange": "NSE",
+            "granularity": "5minute",
+            "rows": [
+                {
+                    "date": "2025-01-19 09:15:00",
+                    "open": 4120.00,
+                    "high": 4135.50,
+                    "low": 4115.00,
+                    "close": 4130.00,
+                    "volume": 45000
+                }
+            ]
+        }
+    },
     "successful": 2,
     "failed": 0,
     "not_found": 0,
-    "total": 2,
-    "message": "Data fetched successfully",
-    "stocks_fetched": ["RELIANCE", "TCS"]
+    "total": 2
 }
 ```
 
@@ -308,14 +388,14 @@ class BrokerMiddlewareClient:
     def fetch_data(self, stocks=None, start_date=None, end_date=None, 
                    exchanges=None, granularity='5minute'):
         """Fetch stock data"""
-        payload = {
+        params = {
             "stocks": stocks,
             "start_date": start_date,
             "end_date": end_date,
             "exchanges": exchanges,
             "granularity": granularity
         }
-        response = requests.post(f'{self.base_url}/api/data', json=payload)
+        response = requests.get(f'{self.base_url}/api/data', params=params)
         return response.json()
     
     def get_exchanges(self):

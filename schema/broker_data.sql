@@ -10,3 +10,12 @@ CREATE TABLE broker_data (
     broker_name  VARCHAR(100),
     granularity  VARCHAR(20)
 );
+
+-- Index for when_added (sorted)
+CREATE INDEX idx_broker_data_when_added ON broker_data (when_added);
+
+-- Index for stocks
+CREATE INDEX idx_broker_data_stocks ON broker_data (stocks);
+
+-- Index for exchange
+CREATE INDEX idx_broker_data_exchange ON broker_data (exchange);
