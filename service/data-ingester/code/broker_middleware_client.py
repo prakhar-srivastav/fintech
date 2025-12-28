@@ -29,6 +29,11 @@ class BrokerMiddlewareClient:
         response = requests.get(f'{self.base_url}/api/exchanges')
         return response.json()
     
+    def get_granularities(self):
+        """Get available granularities"""
+        response = requests.get(f'{self.base_url}/api/granularities')
+        return response.json()
+    
     def get_symbols(self, exchange=None):
         """Get symbols for an exchange or all symbols"""
         if exchange:
@@ -37,3 +42,39 @@ class BrokerMiddlewareClient:
             url = f'{self.base_url}/api/symbols'
         response = requests.get(url)
         return response.json()
+
+# Usage Example
+if __name__ == '__main__':
+    client = BrokerMiddlewareClient()
+    
+    # Check status
+    print("=== Status ===")
+    status = client.check_status()
+    print(json.dumps(status, indent=2))
+    
+    # Get exchanges
+    print("\n=== Available Exchanges ===")
+    exchanges = client.get_exchanges()
+    print(json.dumps(exchanges, indent=2))
+    
+    # Get granularities
+    print("\n=== Available Granularities ===")
+    granularities = client.get_granularities()
+    print(json.dumps(granularities, indent=2))
+    
+    # Get NSE symbols
+    print("\n=== NSE Symbols ===")
+    symbols = client.get_symbols('NSE')
+    print(f"Total NSE symbols: {len(symbols['symbols'])}")
+    print(f"First 5 symbols: {symbols['symbols'][:5]}")
+    
+    # Fetch data
+    print("\n=== Fetch Stock Data ===")
+    result = client.fetch_data(
+        stocks=['RELIANCE', 'TCS'],
+        start_date='2025-01-19',
+        end_date='2025-12-22',
+        exchanges=['NSE'],
+        granularity='5minute'
+    )
+    print(json.dumps(result, indent=2))

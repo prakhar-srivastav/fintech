@@ -25,7 +25,6 @@ PASSWORD = os.getenv("PASSWORD")
 TOTP_KEY = os.getenv("TOTP_KEY")
 API_SECRET = os.getenv("API_SECRET")
 
-
 fetcher = KiteDataFetcher(
     api_key=API_KEY,
     user_name=USER_NAME,
@@ -41,7 +40,10 @@ def index():
     """Serve the HTML form"""
     try:
         logger.info("Serving index page")
-        return render_template_string(open('index.html').read())
+        if os.environ.get("BROKER_MIDDLEWARE_TEST"):
+            return render_template_string(open('../index.html').read())
+        else:
+            return render_template_string(open('index.html').read())
     except Exception as e:
         logger.error(f"Error serving index page: {e}")
         return "Error loading page", 500

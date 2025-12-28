@@ -9,12 +9,23 @@ import requests
 import re
 import onetimepass as otp
 from urllib.parse import urlparse, parse_qs
+import logging
+
+# Configure logging for Kubernetes
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    stream=sys.stdout
+)
+
+logger = logging.getLogger(__name__)
 
 
 class KiteDataFetcher:
     
     EXCHANGES = ['NSE', 'BSE', 'NFO', 'CDS', 'BCD', 'MCX']
-    ALLOWED_GRANULARITIES = ['minute', '3minute', '5minute', '10minute', '15minute', '30minute', '60minute', 'day', 'week', 'month']
+    ALLOWED_GRANULARITIES = ['minute', '3minute', '5minute', '10minute', '15minute', '30minute', '60minute', 'day', 'week']
     RATE_LIMIT_DELAY = 0.35
     MAX_DAYS_INTRADAY = 60
 
@@ -89,7 +100,6 @@ class KiteDataFetcher:
             request_token = err_str.split("request_token=")[1].split(" ")[0]
             if "&" in request_token:
                 request_token = request_token.split("&")[0]
-
         kite = KiteConnect(api_key=self.api_key)
         time.sleep(1)
         data = kite.generate_session(request_token, api_secret=self.api_secret)
@@ -242,7 +252,6 @@ class KiteDataFetcher:
             from_date, 
             to_date
         )
-        
         return stats
     
     def fetch_stock_data_with_retries(
@@ -270,7 +279,7 @@ class KiteDataFetcher:
                 attempt += 1
                 time.sleep(2 ** attempt)
                 if attempt < max_retries:
-                    logging.info("Refreshing access token and retrying...")
+                    logger.info("Refreshing access token and retrying...")
                     self.kite.set_access_token(self.generate_access_token())
 
         return {'error': 'Max retries reached'}
