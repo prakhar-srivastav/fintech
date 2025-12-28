@@ -5,34 +5,45 @@ import os
 import time
 from typing import List, Optional, Dict, Tuple
 import sys
+import requests
+import re
+import onetimepass as otp
+from urllib.parse import urlparse, parse_qs
+
 
 class KiteDataFetcher:
-    """A class to fetch stock data from Kite Connect API"""
     
     EXCHANGES = ['NSE', 'BSE', 'NFO', 'CDS', 'BCD', 'MCX']
-    MAX_DAYS_INTRADAY = 60
+    ALLOWED_GRANULARITIES = ['minute', '3minute', '5minute', '10minute', '15minute', '30minute', '60minute', 'day', 'week', 'month']
     RATE_LIMIT_DELAY = 0.35
-    
+    MAX_DAYS_INTRADAY = 60
+
     def __init__(
         self, 
         api_key: str, 
-        access_token: str,
+        user_name: str,
+        password: str,
+        totp_key: str,
+        api_secret: str,
         data_folder: str = 'data',
         granularity: str = '5minute',
-        exchanges: Optional[List[str]] = None
     ):
         self.api_key = api_key
-        self.access_token = access_token
+        self.user_name = user_name
+        self.password = password
+        self.totp_key = totp_key
+        self.api_secret = api_secret
         self.data_folder = data_folder
         self.granularity = granularity
-        self.exchanges = exchanges or self.EXCHANGES
+        self.exchanges = self.EXCHANGES
         
         self.kite = KiteConnect(api_key=self.api_key)
-        self.kite.set_access_token(self.access_token)
+        self.kite.set_access_token(self.generate_access_token())
         
         self._instruments_cache: List[Dict] = []
     
-    def test_connection(self) -> Dict:
+    def test_connection(
+        self) -> Dict:
         """Test connection to Kite API"""
         try:
             profile = self.kite.profile()
@@ -46,7 +57,45 @@ class KiteDataFetcher:
                 'success': False,
                 'error': str(e)
             }
-    
+
+    def generate_access_token(
+        self) -> str:
+        """Generate access token using login credentials and TOTP"""
+        session = requests.Session()
+        response = session.get(self.kite.login_url())
+        # User login POST request
+        login_payload = {
+            "user_id": self.user_name,
+            "password": self.password,
+        }
+        login_response = session.post("https://kite.zerodha.com/api/login", login_payload)
+        # TOTP POST request
+        totp_payload = {
+            "user_id": self.user_name,
+            "request_id": login_response.json()["data"]["request_id"],
+            "twofa_value": otp.get_totp(self.totp_key),
+            "twofa_type": "totp",
+            "skip_session": True,
+        }
+        totp_response = session.post("https://kite.zerodha.com/api/twofa", totp_payload)
+        # Extract request token from redirect URL
+        try:
+            response = session.get(self.kite.login_url())
+            if "request_token=" in response.url:
+                parsed_url = urlparse(response.url)
+                request_token = parse_qs(parsed_url.query)["request_token"][0]
+        except Exception as e:
+            err_str = str(e)
+            request_token = err_str.split("request_token=")[1].split(" ")[0]
+            if "&" in request_token:
+                request_token = request_token.split("&")[0]
+
+        kite = KiteConnect(api_key=self.api_key)
+        time.sleep(1)
+        data = kite.generate_session(request_token, api_secret=self.api_secret)
+
+        return data["access_token"]
+
     def fetch_instrument_from_exchange(
         self, 
         exchange: str
@@ -196,6 +245,36 @@ class KiteDataFetcher:
         
         return stats
     
+    def fetch_stock_data_with_retries(
+        self,
+        stocks: Optional[List[str]] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        exchanges: Optional[List[str]] = None,
+        max_retries: int = 2
+    ) -> Dict[str, int]:
+        """Fetch stock data with retries on failure"""
+        attempt = 0
+        while attempt < max_retries:
+            try:
+                result = self.fetch_stock_data(
+                    stocks=stocks,
+                    start_date=start_date,
+                    end_date=end_date,
+                    exchanges=exchanges
+                )
+                return result
+            except Exception as e:
+                logger.error(f"Error fetching stock data (attempt {attempt + 1}): {e}")
+            finally:
+                attempt += 1
+                time.sleep(2 ** attempt)
+                if attempt < max_retries:
+                    logging.info("Refreshing access token and retrying...")
+                    self.kite.set_access_token(self.generate_access_token())
+
+        return {'error': 'Max retries reached'}
+    
     def _build_stock_map(
         self, 
         instruments: List[Dict], 
@@ -276,91 +355,3 @@ class KiteDataFetcher:
             'total': len(stock_list),
             'items': data_map,
         }
-
-
-def main():
-    """Main entry point with CLI interface"""
-    
-    # Configuration
-    API_KEY = os.environ.get('API_KEY')
-    ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
-    
-    # Create fetcher instance
-    fetcher = KiteDataFetcher(
-        api_key=API_KEY,
-        access_token=ACCESS_TOKEN,
-        data_folder='data',
-        granularity='5minute'
-    )
-    
-    # Test connection
-    result = fetcher.test_connection()
-    if result['success'] == False:
-        print("Connection Failed")
-        sys.exit(0)
-    else:
-        print("Connection Succesful")
-
-    # Menu
-    print("\n" + "=" * 70)
-    print("CONFIGURATION OPTIONS:")
-    print("=" * 70)
-    print("1. Fetch specific stocks with date range")
-    print("2. Fetch specific stocks (default dates: 2025-01-01 to today)")
-    print("3. Fetch ALL stocks from ALL exchanges (⚠️  VERY LARGE!)")
-    print("4. Fetch all stocks from specific exchange(s)")
-    print("=" * 70)
-    
-    choice = input("\nEnter your choice (1-4): ").strip()
-    
-    if choice == "1":
-        stocks_input = input("\nEnter stock symbols (comma-separated): ").strip()
-        start = input("Enter start date (YYYY-MM-DD) or Enter for default: ").strip()
-        end = input("Enter end date (YYYY-MM-DD) or Enter for today: ").strip()
-        
-        stock_list = [s.strip().upper() for s in stocks_input.split(',')] if stocks_input else None
-        
-        fetcher.fetch_stock_data(
-            stocks=stock_list,
-            start_date=start or None,
-            end_date=end or None
-        )
-    
-    elif choice == "2":
-        stocks_input = input("\nEnter stock symbols (comma-separated): ").strip()
-        stock_list = [s.strip().upper() for s in stocks_input.split(',')] if stocks_input else None
-        
-        if stock_list:
-            fetcher.fetch_stock_data(stocks=stock_list)
-        else:
-            print("❌ No stocks entered!")
-    
-    elif choice == "3":
-        print("\n⚠️  WARNING: This will fetch ALL stocks from ALL exchanges")
-        confirm = input("\nType 'YES' (all caps) to continue: ")
-        
-        if confirm == 'YES':
-            fetcher.fetch_stock_data()
-        else:
-            print("❌ Cancelled.")
-    
-    elif choice == "4":
-        print(f"\nAvailable exchanges: {', '.join(KiteDataFetcher.EXCHANGES)}")
-        exchanges_input = input("Enter exchanges (comma-separated): ").strip()
-        selected = [e.strip().upper() for e in exchanges_input.split(',')] if exchanges_input else None
-        
-        if selected:
-            confirm = input(f"\nFetch from {', '.join(selected)}? Type 'yes': ")
-            if confirm.lower() == 'yes':
-                fetcher.fetch_stock_data(exchanges=selected)
-        else:
-            print("❌ No exchanges selected!")
-    
-    else:
-        print("❌ Invalid choice!")
-    
-    print("\n✅ Done!\n")
-
-
-if __name__ == "__main__":
-    main()
