@@ -5,10 +5,10 @@ headers = {"Content-Type": "application/json"}
 data = {
     "payload": {
         "stocks": ["RELIANCE"],
-        "start_date": "2025-01-19",
+        "start_date": "2025-12-19",
         "end_date": "2025-12-22",
-        "exchanges": ["NSE"],
-        "granularity": "5minute"
+        "exchanges": ["BSE"],
+        "granularity": "10minute"
     }
 }
 

@@ -1,5 +1,5 @@
 CREATE TABLE broker_data (
-    when_added   TIMESTAMP NOT NULL,
+    when_added   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     record_time  TIMESTAMP NOT NULL,
     stocks       VARCHAR(50) NOT NULL,
     exchange     VARCHAR(50) NOT NULL,
@@ -20,6 +20,9 @@ CREATE INDEX idx_broker_data_stocks ON broker_data (stocks);
 
 -- Index for exchange
 CREATE INDEX idx_broker_data_exchange ON broker_data (exchange);
+
+-- Index for record_time
+CREATE INDEX idx_broker_data_record_time ON broker_data (record_time);
 
 -- Composite Index for stocks and record_time
 CREATE INDEX idx_broker_data_stocks_record_time ON broker_data (stocks, record_time);
