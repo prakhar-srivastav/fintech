@@ -1,4 +1,4 @@
 broker-middleware
-test/values.json
-data/
-test/data/
+code/test/values.json
+code/data/
+code/test/data/
