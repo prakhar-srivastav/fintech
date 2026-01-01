@@ -64,14 +64,14 @@ class DBClient:
     """
     def insert_broker_data(self, data_rows):
         insert_query = """
-        REPLACE INTO broker_data (stocks, exchange, granularity, record_time, open, close, low, high, volume, broker_name)
+        REPLACE INTO broker_data (stock, exchange, granularity, record_time, open, close, low, high, volume, broker_name)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         formatted_rows = []
         for row in data_rows:
             record_time = convert_to_mysql_datetime(row.get('record_time'))
             formatted_rows.append((
-                row.get('stocks'),
+                row.get('stock'),
                 row.get('exchange'),
                 row.get('granularity'),
                 record_time,

@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class KiteDataFetcher:
     
-    EXCHANGES = ['NSE', 'BSE', 'NFO', 'CDS', 'BCD', 'MCX']
+    EXCHANGES = ['NSE', 'BSE']
     ALLOWED_GRANULARITIES = ['minute', '3minute', '5minute', '10minute', '15minute', '30minute', '60minute', 'day', 'week']
     RATE_LIMIT_DELAY = 0.35
     MAX_DAYS_INTRADAY = 60
@@ -208,8 +208,12 @@ class KiteDataFetcher:
         
         to_date = datetime.strptime(end_date, '%Y-%m-%d') if end_date else datetime.now()
         from_date = datetime.strptime(start_date, '%Y-%m-%d') if start_date else datetime(2025, 1, 1)
-        target_exchanges = exchanges or self.exchanges
-        exchange_data = {} 
+        
+        target_exchanges = self.exchanges if exchanges is None else exchanges
+        for exchange in target_exchanges:
+            if exchange not in self.EXCHANGES:
+                raise ValueError(f"Exchange {exchange} is not supported.")
+        exchange_data = {}
         for ex in target_exchanges:
             exchange_data[ex] = self.fetch_instrument_from_exchange(ex)
         stats = self._fetch_stocks(
@@ -285,6 +289,7 @@ class KiteDataFetcher:
                 if current_data:
                     found_any = True
                     data_map.append({
+                        'symbol': symbol,
                         'rows': current_data,
                         'exchange': exchange,
                         'granularity': self.granularity,

@@ -73,14 +73,14 @@ db_client = DBClient(DB_CONFIG)
 def transform_data_for_ingestion(data):
     items = data['items']
     broker_data_rows = []
-    for stocks in items.keys():
-        stocks_data = items[stocks]
-        rows = stocks_data['rows']
-        exchange = stocks_data['exchange']
-        granularity = stocks_data['granularity']
+    for item in items:
+        stock = item['symbol']
+        rows = item['rows']
+        exchange = item['exchange']
+        granularity = item['granularity']
         for row in rows:
             broker_data_rows.append({
-                'stocks': stocks,
+                'stock': stock,
                 'exchange': exchange,
                 'granularity': granularity,
                 'record_time': row.get('date'),
@@ -98,7 +98,7 @@ def process_data(payload):
 
     if 'exchanges' not in payload or not payload['exchanges']:
         logging.info("No exchanges provided in payload, fetching all exchanges.")
-        exchanges = broker_client.get_exchanges()
+        exchanges = broker_client.get_exchanges()['exchanges']
     else:
         exchanges = payload['exchanges']
 
@@ -125,7 +125,6 @@ def process_data(payload):
 
     if data:
         broker_data_rows = transform_data_for_ingestion(data)
-        import pdb; pdb.set_trace()
         db_client.insert_broker_data(broker_data_rows)
 
 
@@ -133,7 +132,7 @@ def process_data(payload):
 
 
 @app.route('/sync', methods=['POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("7 per minute")
 def sync():
     try:
         req_data = request.json
