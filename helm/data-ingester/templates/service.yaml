@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: data-ingester
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: data-ingester
+  ports:
+    - protocol: TCP
+      port: {{ .Values.service.port }}
+      targetPort: 8000

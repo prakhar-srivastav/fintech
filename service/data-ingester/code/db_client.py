@@ -5,14 +5,6 @@ import sqlite3
 import mysql.connector
 from datetime import datetime
 
-DB_CONFIG = {
-    'host': os.environ.get('DB_HOST', 'localhost'),
-    'user': os.environ.get('DB_USER', 'root'),
-    'password': os.environ.get('DB_PASSWORD', 'TLxcNWA2Yb'),
-    'database': os.environ.get('DB_NAME', 'fintech_db'),
-    'port': int(os.environ.get('DB_PORT', '3306'))
-}
-
 def convert_to_mysql_datetime(date_str):
     try:
         # Try parsing 'Mon, 20 Jan 2025 03:45:00 GMT' format

@@ -23,37 +23,6 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour, 10 per minute"]
 )
 
-"""
-1. make it deployable
-2. simplify the code of fetcher by writing test cases for it that is needed for ingester.
-3. test cases also include other things like granularity, exchanges, symbols etc.
-4. then write the code for fetcher that can be used by ingester.
-
-test cases for fetcher:
-1. fetch bse - reliance
-2. fetch nse - tcs
-3. fetch bse *
-4. fetch nse - *
-5. fetch all exchanges - *
-6. fetch all exchanges - reliance, tcs
-7. fetch with different granularities - 1min, 5min, 10min
-8. fetch with date ranges - last 7 days, last 30 days
-9. fetch for same day - check if same day data is fetched correctly or we need to give day + 1
-10. create a table for symbols - ticker etc to be added here
-11. create a table for exchanges
-12. create a table for granularities
-13. create a table for exchange_symbols mapping
-14. add a crud for symbols, exchanges, granularities
-15. for a flow where symbols is not given, fetch all symbols for the exchanges given and add it into db
-    then only use that db for fetching symbols for that exchange
-    - then sync
-16. for a flow where exchanges is not given, fetch all exchanges from broker middleware
-    - then fetch all symbols for those exchanges and add into db
-    - then sync
-17 sync_exchange method that syncs exchanges from broker middleware to db
-18 sync_symbols method that syncs symbols from broker middleware to db based on exchanges in db
-19 sync_granularities method that syncs granularities from broker middleware to db
-"""
 
 BROKER_MIDDLEWARE_URL = os.environ.get("BROKER_MIDDLEWARE_URL", "http://localhost:8080")
 
@@ -177,6 +146,9 @@ def get_granularities():
         logging.error(f"Error occurred: {e}")
         return jsonify({"status": "false", "error": str(e)}), 500
 
+@app.route('/status', methods=['GET'])
+def status():
+    return jsonify({"status": "data-ingester is running"}), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)

@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-ingester
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: data-ingester
+  template:
+    metadata:
+      labels:
+        app: data-ingester
+    spec:
+      containers:
+        - name: data-ingester
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          ports:
+            - containerPort: 8000
+          env:
+            - name: BROKER_MIDDLEWARE_URL
+              value: {{ .Values.DB_CONFIG.BROKER_MIDDLEWARE_URL | quote }}
+            - name: DB_HOST
+              value: {{ .Values.DB_CONFIG.DB_HOST | quote }}
+            - name: DB_USER
+              value: {{ .Values.DB_CONFIG.DB_USER | quote }}
+            - name: DB_PASSWORD
+              value: {{ .Values.DB_CONFIG.DB_PASSWORD | quote }}
+            - name: DB_NAME
+              value: {{ .Values.DB_CONFIG.DB_NAME | quote }}
+            - name: DB_PORT
+              value: {{ .Values.DB_CONFIG.DB_PORT | quote }}
