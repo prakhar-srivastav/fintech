@@ -131,29 +131,6 @@ class KiteDataFetcher:
         self._instruments_cache = all_instruments
         return all_instruments
     
-    def get_instrument_token(
-        self, 
-        symbol: str, 
-        instruments: List[Dict], 
-        exchange: Optional[str] = None
-    ) -> Tuple[Optional[int], Optional[str]]:
-        """Get instrument token for a symbol"""
-        if exchange:
-            for inst in instruments:
-                if inst['tradingsymbol'] == symbol and inst['exchange'] == exchange:
-                    return inst['instrument_token'], inst['exchange']
-        
-        for preferred_exchange in ['NSE', 'BSE']:
-            for inst in instruments:
-                if inst['tradingsymbol'] == symbol and inst['exchange'] == preferred_exchange:
-                    return inst['instrument_token'], inst['exchange']
-        
-        for inst in instruments:
-            if inst['tradingsymbol'] == symbol:
-                return inst['instrument_token'], inst['exchange']
-        
-        return None, None
-    
     def fetch_historical_data(
         self,
         instrument_token: int,
@@ -231,24 +208,13 @@ class KiteDataFetcher:
         
         to_date = datetime.strptime(end_date, '%Y-%m-%d') if end_date else datetime.now()
         from_date = datetime.strptime(start_date, '%Y-%m-%d') if start_date else datetime(2025, 1, 1)
-        
         target_exchanges = exchanges or self.exchanges
-        all_instruments = self.fetch_all_instruments()
-        
-        if not all_instruments:
-            return {'error': 'Failed to fetch instruments'}
-        
-        if not stocks:
-            stock_map = self._build_stock_map(all_instruments, target_exchanges)
-            stock_list = list(stock_map.keys())
-        else:
-            stock_list = stocks
-            stock_map = None
-        
+        exchange_data = {} 
+        for ex in target_exchanges:
+            exchange_data[ex] = self.fetch_instrument_from_exchange(ex)
         stats = self._fetch_stocks(
-            stock_list, 
-            stock_map, 
-            all_instruments, 
+            stocks, 
+            exchange_data, 
             from_date, 
             to_date
         )
@@ -284,30 +250,10 @@ class KiteDataFetcher:
 
         return {'error': 'Max retries reached'}
     
-    def _build_stock_map(
-        self, 
-        instruments: List[Dict], 
-        exchanges: List[str]
-    ) -> Dict[str, List[Tuple[int, str]]]:
-        """Build a map of symbols to (token, exchange) tuples"""
-        stock_map = {}
-        for inst in instruments:
-            if inst['exchange'] in exchanges:
-                symbol = inst['tradingsymbol']
-                token = inst['instrument_token']
-                exchange = inst['exchange']
-                
-                if symbol not in stock_map:
-                    stock_map[symbol] = []
-                stock_map[symbol].append((token, exchange))
-        
-        return stock_map
-    
     def _fetch_stocks(
         self,
         stock_list: List[str],
-        stock_map: Optional[Dict],
-        all_instruments: List[Dict],
+        exchange_data: Dict[str, List[Tuple[int, str]]],
         from_date: datetime,
         to_date: datetime
     ) -> Dict[str, int]:
@@ -316,47 +262,39 @@ class KiteDataFetcher:
         failed = 0
         not_found = 0
         data_map = {}
-        for symbol in stock_list:
-            if stock_map and symbol in stock_map:
-                found_any = False
-                for token, exchange in stock_map[symbol]:
-                    data = self.fetch_historical_data(token, from_date, to_date, self.granularity)
-                    if data:
-                        if self.save_to_csv(symbol, data, exchange):
-                            found_any = True
-                            data_map[symbol] = {
-                            'rows': data,
-                            'exchange': exchange,
-                            'granularity': self.granularity,
-                            }
+        stock_map = {}
+        stock_set = set()
 
+        for exchange, instruments in exchange_data.items():
+            for inst in instruments:
+                symbol = inst['tradingsymbol']
+                token = inst['instrument_token']
+                if symbol not in stock_map:
+                    stock_map[symbol] = []
+                stock_map[symbol].append((token, exchange))
+                stock_set.add(symbol)
+
+        if not stock_list:
+            stock_list = list(stock_set)
+
+        data_map = []
+        for symbol in stock_list:
+            found_any = False
+            for token, exchange in stock_map.get(symbol, []):
+                current_data = self.fetch_historical_data(token, from_date, to_date, self.granularity)
+                if current_data:
+                    found_any = True
+                    data_map.append({
+                        'rows': current_data,
+                        'exchange': exchange,
+                        'granularity': self.granularity,
+                    })
+                    self.save_to_csv(symbol, current_data, exchange) 
                 if found_any:
                     successful += 1
                 else:
                     failed += 1
-            else:
-                token, found_exchange = self.get_instrument_token(symbol, all_instruments)
-                
-                if not token:
-                    not_found += 1
-                    continue
-                
-                data = self.fetch_historical_data(token, from_date, to_date, self.granularity)
-                
-                if data:
-                    if self.save_to_csv(symbol, data, found_exchange):
-                        data_map[symbol] = {
-                            'rows': data,
-                            'exchange': found_exchange,
-                            'granularity': self.granularity,
-                        }
-                        successful += 1
-                    else:
-                        failed += 1
-                else:
-                    failed += 1
-        
-        
+
         return {
             'successful': successful,
             'failed': failed,
