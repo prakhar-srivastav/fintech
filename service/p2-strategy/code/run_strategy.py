@@ -126,7 +126,7 @@ def find_best_points(day_data: Dict[str, List[Dict[str, Any]]],
                 'highest': _highest,
                 'lowest': _lowest
             })
-    scores.sort(key=lambda x: x['exceeded'], reverse=True)
+    scores.sort(key=lambda x: (x['exceeded'], x['average']), reverse=True)
     return scores
 
 def find_best_points_for_symbol(symbol: str,
@@ -282,7 +282,7 @@ def main():
                     syncing_needed = False  # Only sync once per symbol
                     points = decorate_points(points, {'exchange': exchange, 'symbol': symbol, 'vertical_gap': v_gap, 'horizontal_gap': h_gap, 'continuous_days': c_days})
                     master_data.extend(points)
-    master_data.sort(key=lambda x: x['exceed_prob'], reverse=True)
+    master_data.sort(key=lambda x: (x['exceed_prob'], x['average']), reverse=True)
 
 
 if __name__ == '__main__':

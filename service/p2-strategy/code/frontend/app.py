@@ -163,8 +163,8 @@ def run_strategy():
                                 'horizontal_gap': h_gap,
                                 'continuous_days': c_days
                             })
-                            
-                            master_data.extend(points[:10])  # Keep top 10 per combination
+                            points.sort(key=lambda x: (x['exceed_prob'], x['average']), reverse=True)
+                            master_data.extend(points[:4])  # Keep top 4 per combination
                             processed += 1
                             
                         except Exception as e:
@@ -204,8 +204,8 @@ def run_strategy():
                                 'horizontal_gap': h_gap,
                                 'continuous_days': c_days
                             })
-                            
-                            master_data.extend(points[:10])
+                            points.sort(key=lambda x: (x['exceed_prob'], x['average']), reverse=True)
+                            master_data.extend(points[:4])  # Keep top 4 per combination
                             processed += 1
                             
                         except Exception as e:
@@ -214,8 +214,8 @@ def run_strategy():
                             continue
         
         # Sort by exceed probability
-        master_data.sort(key=lambda x: x.get('exceed_prob', 0), reverse=True)
-        
+        master_data.sort(key=lambda x: (x['exceed_prob'], x['average']), reverse=True)
+
         # Generate unique strategy ID and save to database
         strategy_id = datetime.now().strftime('%Y%m%d_%H%M%S')
         
@@ -233,7 +233,7 @@ def run_strategy():
             'status': 'success',
             'strategy_id': strategy_id,
             'total_results': len(master_data),
-            'top_results': master_data[:50],  # Return top 50
+            'top_results': master_data,  # Return top 50
             'summary': summary
         })
         
@@ -267,7 +267,7 @@ def generate_summary(strategy_id: str) -> Dict[str, Any]:
         max_exceed = best_config.get('exceed_prob', 0)
         
         # Get top 10 configs for this symbol (percentiles already in data)
-        configs_with_percentiles = symbol_data[:10]
+        configs_with_percentiles = symbol_data
         
         symbol_scores.append({
             'symbol': symbol,
