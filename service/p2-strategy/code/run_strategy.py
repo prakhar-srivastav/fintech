@@ -121,8 +121,8 @@ def find_best_points(day_data: Dict[str, List[Dict[str, Any]]],
                 'p20': sorted(_record)[int(0.2 * len(_record))],
                 'p40': sorted(_record)[int(0.4 * len(_record))],
                 'p50': sorted(_record)[int(0.5 * len(_record))],
-                'x': x,
-                'y': y,
+                'x': time_points[x],
+                'y': time_points[y],
                 'highest': _highest,
                 'lowest': _lowest
             })
