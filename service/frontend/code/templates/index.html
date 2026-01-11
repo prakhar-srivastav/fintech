@@ -236,10 +236,11 @@
             <h2>🔍 Filters</h2>
             <div class="filter-row">
                 <div class="filter-group">
-                    <label for="stockSelect">Stock Symbol</label>
-                    <select id="stockSelect">
-                        <option value="">Select an exchange first</option>
-                    </select>
+                    <label for="stockInput">Stock Symbol</label>
+                    <input type="text" id="stockInput" list="stockList" placeholder="Type or select a stock">
+                    <datalist id="stockList">
+                        <!-- Will be populated dynamically -->
+                    </datalist>
                 </div>
                 <div class="filter-group">
                     <label for="exchangeSelect">Exchange</label>
@@ -332,8 +333,9 @@
                 ]);
             } else {
                 // Clear stocks and granularities if no exchange selected
-                const stockSelect = document.getElementById('stockSelect');
-                stockSelect.innerHTML = '<option value="">Select an exchange first</option>';
+                document.getElementById('stockInput').value = '';
+                document.getElementById('stockInput').placeholder = 'Select an exchange first';
+                document.getElementById('stockList').innerHTML = '';
                 const granularitySelect = document.getElementById('granularitySelect');
                 granularitySelect.innerHTML = '<option value="">All</option>';
             }
@@ -356,22 +358,24 @@
         }
 
         async function loadStocks(exchange) {
-            const select = document.getElementById('stockSelect');
-            select.innerHTML = '<option value="">Loading...</option>';
+            const datalist = document.getElementById('stockList');
+            const input = document.getElementById('stockInput');
+            input.placeholder = 'Loading stocks...';
+            datalist.innerHTML = '';
             
             try {
                 const response = await fetch(`/api/stocks?exchange=${encodeURIComponent(exchange)}`);
                 const data = await response.json();
-                select.innerHTML = '<option value="">Select a stock</option>';
                 
                 if (data.stocks && Array.isArray(data.stocks)) {
                     data.stocks.forEach(stock => {
-                        select.innerHTML += `<option value="${stock}">${stock}</option>`;
+                        datalist.innerHTML += `<option value="${stock}">`;
                     });
                 }
+                input.placeholder = 'Type or select a stock';
             } catch (error) {
                 console.error('Error loading stocks:', error);
-                select.innerHTML = '<option value="">Error loading stocks</option>';
+                input.placeholder = 'Error loading stocks';
             }
         }
 
@@ -504,7 +508,7 @@
         }
 
         async function loadStockData() {
-            const stock = document.getElementById('stockSelect').value;
+            const stock = document.getElementById('stockInput').value.trim();
             const exchange = document.getElementById('exchangeSelect').value;
             const granularity = document.getElementById('granularitySelect').value;
             const startDate = document.getElementById('startDate').value;
@@ -516,7 +520,7 @@
             }
 
             if (!stock) {
-                showError('Please select a stock symbol');
+                showError('Please enter or select a stock symbol');
                 return;
             }
 
@@ -581,7 +585,9 @@
 
         function resetFilters() {
             document.getElementById('exchangeSelect').innerHTML = '<option value="">Click to load exchanges</option>';
-            document.getElementById('stockSelect').innerHTML = '<option value="">Select an exchange first</option>';
+            document.getElementById('stockInput').value = '';
+            document.getElementById('stockInput').placeholder = 'Select an exchange first';
+            document.getElementById('stockList').innerHTML = '';
             document.getElementById('granularitySelect').innerHTML = '<option value="">All</option>';
             document.getElementById('startDate').value = '';
             document.getElementById('endDate').value = '';

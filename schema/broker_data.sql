@@ -37,3 +37,54 @@ CREATE INDEX idx_broker_data_stock_exchange_record_time ON broker_data (stock, e
 -- Unique constraint to prevent duplicate entries
 ALTER TABLE broker_data
 ADD CONSTRAINT uq_broker_data_unique_entry UNIQUE (record_time, stock, exchange, granularity);
+
+-- ============================================================================
+-- Strategy Tables for P2 Strategy Dashboard
+-- ============================================================================
+
+-- Table to store strategy run metadata
+CREATE TABLE strategy_runs (
+    id VARCHAR(50) PRIMARY KEY,
+    when_added TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    description VARCHAR(255),
+    INDEX idx_strategy_runs_when_added (when_added)
+);
+
+-- Table to store strategy results
+CREATE TABLE strategy_results (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    strategy_id VARCHAR(50) NOT NULL,
+    stock VARCHAR(50) NOT NULL,
+    exchange VARCHAR(50) NOT NULL,
+    x DECIMAL(12,4),
+    y DECIMAL(12,4),
+    exceed_prob DECIMAL(10,6),
+    profit_days INT,
+    average DECIMAL(12,4),
+    total_count INT,
+    highest DECIMAL(12,4),
+    p5 DECIMAL(12,4),
+    p10 DECIMAL(12,4),
+    p20 DECIMAL(12,4),
+    p40 DECIMAL(12,4),
+    p50 DECIMAL(12,4),
+    vertical_gap DECIMAL(10,4),
+    horizontal_gap DECIMAL(10,4),
+    continuous_days INT,
+    when_added TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Foreign key to strategy_runs
+    CONSTRAINT fk_strategy_results_run FOREIGN KEY (strategy_id) 
+        REFERENCES strategy_runs(id) ON DELETE CASCADE,
+    
+    -- Indexes for common queries
+    INDEX idx_strategy_results_strategy_id (strategy_id),
+    INDEX idx_strategy_results_stock (stock),
+    INDEX idx_strategy_results_exchange (exchange),
+    INDEX idx_strategy_results_exceed_prob (exceed_prob),
+    INDEX idx_strategy_results_stock_exchange (stock, exchange),
+    
+    -- Unique constraint to prevent duplicate entries for same config
+    UNIQUE KEY uq_strategy_results_unique 
+        (strategy_id, stock, exchange, x, y, vertical_gap, horizontal_gap, continuous_days)
+);

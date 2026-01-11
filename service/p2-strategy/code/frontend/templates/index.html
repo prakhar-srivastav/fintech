@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2 Strategy Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        header p {
+            color: #888;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .config-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+        }
+        .config-section h3 {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            color: #aaa;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 0.95rem;
+        }
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .input-group select option {
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .checkbox-item:hover {
+            background: rgba(102, 126, 234, 0.3);
+        }
+        .checkbox-item input {
+            width: auto;
+        }
+        .checkbox-item.selected {
+            background: rgba(102, 126, 234, 0.5);
+        }
+        .chip-input {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            min-height: 50px;
+        }
+        .chip {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            background: #667eea;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
+        .chip .remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .chip-add {
+            display: flex;
+            gap: 5px;
+        }
+        .chip-add input {
+            width: 80px;
+            padding: 5px;
+            font-size: 0.85rem;
+        }
+        .chip-add button {
+            padding: 5px 10px;
+            background: #667eea;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            margin-left: 10px;
+        }
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        .stat-card .value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-card .label {
+            color: #888;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .results-table th,
+        .results-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .results-table th {
+            background: rgba(102, 126, 234, 0.3);
+            color: #fff;
+            font-weight: 600;
+        }
+        .results-table tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        .prob-bar {
+            width: 100px;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .prob-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+        }
+        .success {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            color: #6bff6b;
+            margin-bottom: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .toggle-btn {
+            padding: 5px 15px;
+            margin: 2px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: transparent;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .toggle-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+        }
+        
+        /* Tab Navigation */
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 5px;
+            border-radius: 10px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 15px 25px;
+            border: none;
+            background: transparent;
+            color: #888;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .tab-btn:hover {
+            color: #fff;
+            background: rgba(102, 126, 234, 0.2);
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Previous Runs Styles */
+        .runs-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .run-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .run-item:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateX(5px);
+        }
+        .run-item.selected {
+            background: rgba(102, 126, 234, 0.3);
+            border: 1px solid #667eea;
+        }
+        .run-item .run-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .run-item .run-id {
+            font-weight: 600;
+            color: #fff;
+        }
+        .run-item .run-date {
+            font-size: 0.85rem;
+            color: #888;
+        }
+        .run-item .run-count {
+            background: #667eea;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
+        
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .pagination button {
+            padding: 8px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .pagination button:hover:not(:disabled) {
+            background: #667eea;
+            border-color: #667eea;
+        }
+        .pagination button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .pagination .page-info {
+            color: #888;
+            font-size: 0.9rem;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .modal-header h3 {
+            color: #667eea;
+            font-size: 1.3rem;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+        }
+        .modal-close:hover {
+            color: #fff;
+        }
+        
+        /* Filter Controls */
+        .filter-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        .filter-controls select,
+        .filter-controls input {
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 0.9rem;
+        }
+        .filter-controls select option {
+            background: #1a1a2e;
+        }
+        
+        /* Stock Button in Table */
+        .stock-btn {
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid #667eea;
+            color: #667eea;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .stock-btn:hover {
+            background: #667eea;
+            color: #fff;
+        }
+        
+        /* Run Details Section */
+        .run-details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .run-details-header h3 {
+            color: #667eea;
+        }
+        .back-btn {
+            padding: 8px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: transparent;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Expandable Row Styles */
+        .expandable-row {
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .expandable-row:hover {
+            background: rgba(102, 126, 234, 0.2) !important;
+        }
+        .expandable-row td:first-child::before {
+            content: '▶';
+            margin-right: 8px;
+            font-size: 0.7rem;
+            transition: transform 0.2s ease;
+            display: inline-block;
+        }
+        .expandable-row.expanded td:first-child::before {
+            transform: rotate(90deg);
+        }
+        .config-details-row {
+            display: none;
+        }
+        .config-details-row.show {
+            display: table-row;
+        }
+        .config-details-row td {
+            padding: 0 !important;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        .config-details-content {
+            padding: 15px 20px;
+        }
+        .config-details-content h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        .config-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 10px;
+        }
+        .config-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px 15px;
+            border-left: 3px solid #667eea;
+        }
+        .config-card.best {
+            border-left-color: #4ade80;
+            background: rgba(74, 222, 128, 0.1);
+        }
+        .config-card .config-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .config-card .config-prob {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .config-card.best .config-prob {
+            color: #4ade80;
+        }
+        .config-card .config-badge {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+        }
+        .config-card.best .config-badge {
+            background: #4ade80;
+        }
+        .config-card .config-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        .config-card .config-details span {
+            display: flex;
+            gap: 5px;
+        }
+        .config-card .config-details .label {
+            color: #888;
+        }
+        .config-card .config-details .value {
+            color: #fff;
+        }
+        
+        /* Percentile Section in Config Cards */
+        .percentile-section {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .percentile-item {
+            text-align: center;
+        }
+        .percentile-label {
+            display: block;
+            font-size: 0.7rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+        .percentile-val {
+            display: block;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #fff;
+        }
+        .percentile-val.p5 {
+            color: #f87171;
+        }
+        .percentile-val.p10 {
+            color: #fb923c;
+        }
+        .percentile-val.p20 {
+            color: #fbbf24;
+        }
+        .percentile-val.p40 {
+            color: #a3e635;
+        }
+        
+        /* Table percentile values */
+        .percentile-value {
+            font-weight: 600;
+            color: #fbbf24;
+        }
+        .percentile-value.p5 {
+            color: #f87171;
+        }
+        .percentile-value.p10 {
+            color: #fb923c;
+        }
+        
+        /* Config count badge */
+        .config-count-badge {
+            background: rgba(102, 126, 234, 0.3);
+            color: #667eea;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 P2 Strategy Dashboard</h1>
+            <p>Configure and run strategy analysis to find best trading points</p>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('run-strategy')">🚀 Run Strategy</button>
+            <button class="tab-btn" onclick="switchTab('previous-runs')">📊 Previous Runs</button>
+        </div>
+
+        <!-- Run Strategy Tab -->
+        <div id="run-strategy-tab" class="tab-content active">
+        <!-- Configuration Card -->
+        <div class="card">
+            <h2>⚙️ Strategy Configuration</h2>
+            <div class="config-grid">
+                <!-- Parameters Section -->
+                <div class="config-section">
+                    <h3>Strategy Parameters</h3>
+                    
+                    <div class="input-group">
+                        <label>Vertical Gaps</label>
+                        <div class="chip-input" id="verticalGapsChips">
+                            <div class="chip">0.5 <span class="remove" onclick="removeChip('verticalGaps', 0.5)">×</span></div>
+                            <div class="chip">1 <span class="remove" onclick="removeChip('verticalGaps', 1)">×</span></div>
+                            <div class="chip">2 <span class="remove" onclick="removeChip('verticalGaps', 2)">×</span></div>
+                        </div>
+                        <div class="chip-add">
+                            <input type="number" id="newVerticalGap" step="0.1" placeholder="Add">
+                            <button onclick="addChip('verticalGaps')">+</button>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Horizontal Gaps</label>
+                        <div class="chip-input" id="horizontalGapsChips">
+                            <div class="chip">2 <span class="remove" onclick="removeChip('horizontalGaps', 2)">×</span></div>
+                        </div>
+                        <div class="chip-add">
+                            <input type="number" id="newHorizontalGap" placeholder="Add">
+                            <button onclick="addChip('horizontalGaps')">+</button>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Continuous Days</label>
+                        <div class="chip-input" id="continuousDaysChips">
+                            <div class="chip">3 <span class="remove" onclick="removeChip('continuousDays', 3)">×</span></div>
+                            <div class="chip">5 <span class="remove" onclick="removeChip('continuousDays', 5)">×</span></div>
+                            <div class="chip">7 <span class="remove" onclick="removeChip('continuousDays', 7)">×</span></div>
+                            <div class="chip">10 <span class="remove" onclick="removeChip('continuousDays', 10)">×</span></div>
+                        </div>
+                        <div class="chip-add">
+                            <input type="number" id="newContinuousDays" placeholder="Add">
+                            <button onclick="addChip('continuousDays')">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Date & Granularity Section -->
+                <div class="config-section">
+                    <h3>Date Range & Granularity</h3>
+                    
+                    <div class="input-group">
+                        <label>Start Date</label>
+                        <input type="date" id="startDate">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>End Date</label>
+                        <input type="date" id="endDate">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Granularity</label>
+                        <select id="granularity">
+                            <option value="1minute">1 Minute</option>
+                            <option value="3minute" selected>3 Minute</option>
+                            <option value="5minute">5 Minute</option>
+                            <option value="10minute">10 Minute</option>
+                            <option value="15minute">15 Minute</option>
+                            <option value="30minute">30 Minute</option>
+                            <option value="60minute">60 Minute</option>
+                            <option value="day">Day</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>
+                            <input type="checkbox" id="syncData" checked> Sync data from broker
+                        </label>
+                    </div>
+                </div>
+
+                <!-- NSE Stocks Section -->
+                <div class="config-section">
+                    <h3>NSE Stocks</h3>
+                    <div style="margin-bottom: 10px;">
+                        <button class="toggle-btn" onclick="toggleAllStocks('nse', true)">Select All</button>
+                        <button class="toggle-btn" onclick="toggleAllStocks('nse', false)">Clear All</button>
+                    </div>
+                    <div class="checkbox-group" id="nseStocks">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- BSE Stocks Section -->
+                <div class="config-section">
+                    <h3>BSE Stocks</h3>
+                    <div style="margin-bottom: 10px;">
+                        <button class="toggle-btn" onclick="toggleAllStocks('bse', true)">Select All</button>
+                        <button class="toggle-btn" onclick="toggleAllStocks('bse', false)">Clear All</button>
+                    </div>
+                    <div class="checkbox-group" id="bseStocks">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; text-align: center;">
+                <button class="btn btn-primary" id="runBtn" onclick="runStrategy()">🚀 Run Strategy</button>
+                <button class="btn btn-secondary" onclick="resetConfig()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Error/Success Messages -->
+        <div class="error hidden" id="errorMessage"></div>
+        <div class="success hidden" id="successMessage"></div>
+
+        <!-- Loading Indicator -->
+        <div class="loading hidden" id="loadingIndicator">
+            <div class="spinner"></div>
+            <p>Running strategy analysis... This may take a few minutes.</p>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <!-- Summary Stats -->
+            <div class="card">
+                <h2>📊 Summary Statistics</h2>
+                <div class="summary-stats" id="summaryStats">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Symbol Scores with Configs -->
+            <div class="card">
+                <h2>🏆 Stock Results by Max Exceed Probability</h2>
+                <p style="color: #888; margin-bottom: 15px;">Click on a stock row to expand and see all configurations with percentile profit values</p>
+                <div class="table-container">
+                    <table class="results-table" id="symbolScoresTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">Rank</th>
+                                <th>Symbol</th>
+                                <th>Exchange</th>
+                                <th>Max Exceed Prob</th>
+                                <th>Avg Return</th>
+                                <th>P5</th>
+                                <th>P10</th>
+                                <th>P50</th>
+                                <th>Best Config</th>
+                                <th style="width: 80px;">Configs</th>
+                            </tr>
+                        </thead>
+                        <tbody id="symbolScoresBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div> <!-- End of run-strategy-tab -->
+
+        <!-- Previous Runs Tab -->
+        <div id="previous-runs-tab" class="tab-content">
+            <!-- Runs List View -->
+            <div id="runsListView">
+                <div class="card">
+                    <h2>📊 Previous Strategy Runs</h2>
+                    <div class="runs-list" id="runsList">
+                        <!-- Populated dynamically -->
+                    </div>
+                    <div class="pagination" id="runsPagination">
+                        <button onclick="loadRuns(currentRunsPage - 1)" id="runsPrevBtn">← Previous</button>
+                        <span class="page-info" id="runsPageInfo">Page 1</span>
+                        <button onclick="loadRuns(currentRunsPage + 1)" id="runsNextBtn">Next →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Run Details View -->
+            <div id="runDetailsView" class="hidden">
+                <div class="card">
+                    <div class="run-details-header">
+                        <h3 id="runDetailsTitle">Run Details</h3>
+                        <button class="back-btn" onclick="showRunsList()">← Back to Runs</button>
+                    </div>
+                    
+                    <!-- Summary Stats for Run -->
+                    <div class="summary-stats" id="runSummaryStats">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Best Per Stock/Exchange Table -->
+                <div class="card">
+                    <h2>🏆 Best Result per Stock/Exchange</h2>
+                    <p style="color: #888; margin-bottom: 15px;">Click on a stock to see top 4 configurations</p>
+                    <div class="table-container">
+                        <table class="results-table" id="bestPerStockTable">
+                            <thead>
+                                <tr>
+                                    <th>Stock</th>
+                                    <th>Exchange</th>
+                                    <th>Exceed Prob</th>
+                                    <th>Avg Return</th>
+                                    <th>V-Gap</th>
+                                    <th>H-Gap</th>
+                                    <th>C-Days</th>
+                                    <th>X→Y Points</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bestPerStockBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- All Results with Pagination -->
+                <div class="card">
+                    <h2>📋 All Results</h2>
+                    <div class="filter-controls">
+                        <select id="filterStock" onchange="filterRunResults()">
+                            <option value="">All Stocks</option>
+                        </select>
+                        <select id="filterExchange" onchange="filterRunResults()">
+                            <option value="">All Exchanges</option>
+                            <option value="NSE">NSE</option>
+                            <option value="BSE">BSE</option>
+                        </select>
+                        <select id="sortBy" onchange="filterRunResults()">
+                            <option value="exceed_prob">Sort by Exceed Prob</option>
+                            <option value="average">Sort by Average Return</option>
+                            <option value="stock">Sort by Stock</option>
+                        </select>
+                        <select id="sortOrder" onchange="filterRunResults()">
+                            <option value="desc">Descending</option>
+                            <option value="asc">Ascending</option>
+                        </select>
+                    </div>
+                    <div class="table-container">
+                        <table class="results-table" id="runResultsTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Stock</th>
+                                    <th>Exchange</th>
+                                    <th>Exceed Prob</th>
+                                    <th>Avg Return</th>
+                                    <th>V-Gap</th>
+                                    <th>H-Gap</th>
+                                    <th>C-Days</th>
+                                    <th>X→Y Points</th>
+                                </tr>
+                            </thead>
+                            <tbody id="runResultsBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" id="resultsPagination">
+                        <button onclick="loadRunResults(currentResultsPage - 1)" id="resultsPrevBtn">← Previous</button>
+                        <span class="page-info" id="resultsPageInfo">Page 1</span>
+                        <button onclick="loadRunResults(currentResultsPage + 1)" id="resultsNextBtn">Next →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Configs Modal -->
+        <div class="modal-overlay" id="configsModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Top Configurations</h3>
+                    <button class="modal-close" onclick="closeConfigsModal()">×</button>
+                </div>
+                <div class="table-container">
+                    <table class="results-table" id="configsTable">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Exceed Prob</th>
+                                <th>Avg Return</th>
+                                <th>V-Gap</th>
+                                <th>H-Gap</th>
+                                <th>C-Days</th>
+                                <th>X→Y Points</th>
+                                <th>Profit Days</th>
+                            </tr>
+                        </thead>
+                        <tbody id="configsBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration state
+        let config = {
+            verticalGaps: [0.5, 1, 2],
+            horizontalGaps: [2],
+            continuousDays: [3, 5, 7, 10],
+            nseStocks: [],
+            bseStocks: []
+        };
+
+        let availableStocks = {
+            nse: {},
+            bse: {}
+        };
+
+        // Charts
+        let symbolsChart = null;
+        let scatterChart = null;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+            setDefaultDates();
+        });
+
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const data = await response.json();
+                
+                availableStocks.nse = data.available_nse_stocks || {};
+                availableStocks.bse = data.available_bse_stocks || {};
+                
+                // Set default dates
+                document.getElementById('startDate').value = data.start_date;
+                document.getElementById('endDate').value = data.end_date;
+                
+                // Populate stock checkboxes
+                populateStocks('nse', availableStocks.nse);
+                populateStocks('bse', availableStocks.bse);
+                
+            } catch (error) {
+                console.error('Error loading config:', error);
+            }
+        }
+
+        function setDefaultDates() {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 90);
+            
+            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+        }
+
+        function populateStocks(exchange, stocks) {
+            const container = document.getElementById(exchange + 'Stocks');
+            container.innerHTML = '';
+            
+            for (const [symbol, name] of Object.entries(stocks)) {
+                const item = document.createElement('label');
+                item.className = 'checkbox-item';
+                item.innerHTML = `
+                    <input type="checkbox" value="${symbol}" onchange="updateStockSelection('${exchange}')">
+                    <span title="${name}">${symbol}</span>
+                `;
+                container.appendChild(item);
+            }
+        }
+
+        function toggleAllStocks(exchange, select) {
+            const container = document.getElementById(exchange + 'Stocks');
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = select);
+            updateStockSelection(exchange);
+        }
+
+        function updateStockSelection(exchange) {
+            const container = document.getElementById(exchange + 'Stocks');
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+            config[exchange + 'Stocks'] = Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        function addChip(field) {
+            // Map field names to input IDs
+            const inputIdMap = {
+                'verticalGaps': 'newVerticalGap',
+                'horizontalGaps': 'newHorizontalGap',
+                'continuousDays': 'newContinuousDays'
+            };
+            const inputId = inputIdMap[field];
+            const input = document.getElementById(inputId);
+            const value = parseFloat(input.value);
+            
+            if (!isNaN(value) && !config[field].includes(value)) {
+                config[field].push(value);
+                renderChips(field);
+                input.value = '';
+            }
+        }
+
+        function removeChip(field, value) {
+            config[field] = config[field].filter(v => v !== value);
+            renderChips(field);
+        }
+
+        function renderChips(field) {
+            const container = document.getElementById(field + 'Chips');
+            const chips = config[field].map(v => 
+                `<div class="chip">${v} <span class="remove" onclick="removeChip('${field}', ${v})">×</span></div>`
+            ).join('');
+            container.innerHTML = chips;
+        }
+
+        function resetConfig() {
+            config = {
+                verticalGaps: [0.5, 1, 2],
+                horizontalGaps: [2],
+                continuousDays: [3, 5, 7, 10],
+                nseStocks: [],
+                bseStocks: []
+            };
+            
+            renderChips('verticalGaps');
+            renderChips('horizontalGaps');
+            renderChips('continuousDays');
+            
+            toggleAllStocks('nse', false);
+            toggleAllStocks('bse', false);
+            
+            setDefaultDates();
+            document.getElementById('granularity').value = '3minute';
+            document.getElementById('syncData').checked = true;
+            
+            hideResults();
+        }
+
+        async function runStrategy() {
+            const nseStocks = config.nseStocks || [];
+            const bseStocks = config.bseStocks || [];
+            
+            if (nseStocks.length === 0 && bseStocks.length === 0) {
+                showError('Please select at least one stock');
+                return;
+            }
+            
+            if (config.verticalGaps.length === 0) {
+                showError('Please add at least one vertical gap');
+                return;
+            }
+            
+            const payload = {
+                vertical_gaps: config.verticalGaps,
+                horizontal_gaps: config.horizontalGaps,
+                continuous_days: config.continuousDays,
+                granularity: document.getElementById('granularity').value,
+                start_date: document.getElementById('startDate').value,
+                end_date: document.getElementById('endDate').value,
+                nse_stocks: nseStocks,
+                bse_stocks: bseStocks,
+                sync_data: document.getElementById('syncData').checked
+            };
+            
+            showLoading(true);
+            hideError();
+            hideResults();
+            
+            try {
+                const response = await fetch('/api/run-strategy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'error') {
+                    showError(result.error);
+                } else {
+                    showSuccess(`Strategy completed! Found ${result.total_results} results.`);
+                    displayResults(result);
+                }
+            } catch (error) {
+                showError('Error running strategy: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function displayResults(result) {
+            const summary = result.summary;
+            const topResults = result.top_results;
+            const symbolScores = summary.symbol_scores || [];
+            
+            // Summary stats
+            const bestSymbol = symbolScores.length > 0 ? symbolScores[0] : null;
+            document.getElementById('summaryStats').innerHTML = `
+                <div class="stat-card">
+                    <div class="value">${result.total_results || 0}</div>
+                    <div class="label">Total Results</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value">${summary.total_symbols || 0}</div>
+                    <div class="label">Symbols Analyzed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value">${bestSymbol ? (bestSymbol.exceed_prob * 100).toFixed(1) + '%' : '-'}</div>
+                    <div class="label">Best Exceed Prob</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value">${bestSymbol ? bestSymbol.symbol : '-'}</div>
+                    <div class="label">Top Symbol</div>
+                </div>
+            `;
+            
+            // Render symbol scores table with expandable configs
+            renderSymbolScoresTable(symbolScores);
+            
+            document.getElementById('resultsSection').classList.remove('hidden');
+        }
+
+        function renderSymbolScoresTable(symbolScores) {
+            const tbody = document.getElementById('symbolScoresBody');
+            
+            tbody.innerHTML = symbolScores.map((item, index) => {
+                const configsHtml = renderConfigCards(item.configs || [], index, item.symbol);
+                return `
+                    <tr class="expandable-row" onclick="toggleConfigDetails(${index})">
+                        <td>${index + 1}</td>
+                        <td><strong>${item.symbol}</strong></td>
+                        <td>${item.exchange || '-'}</td>
+                        <td>
+                            <div class="prob-bar">
+                                <div class="prob-bar-fill" style="width: ${(item.exceed_prob * 100)}%"></div>
+                            </div>
+                            <strong>${(item.exceed_prob * 100).toFixed(2)}%</strong>
+                        </td>
+                        <td>${item.average?.toFixed(2) || '-'}</td>
+                        <td class="percentile-value p5">${item.p5 !== null && item.p5 !== undefined ? item.p5.toFixed(2) : '-'}</td>
+                        <td class="percentile-value p10">${item.p10 !== null && item.p10 !== undefined ? item.p10.toFixed(2) : '-'}</td>
+                        <td class="percentile-value">${item.p50 !== null && item.p50 !== undefined ? item.p50.toFixed(2) : '-'}</td>
+                        <td style="font-size: 0.8rem; color: #aaa;">
+                            V:${item.vertical_gap} H:${item.horizontal_gap} D:${item.continuous_days}
+                        </td>
+                        <td><span class="config-count-badge">${item.total_configs || 0}</span></td>
+                    </tr>
+                    <tr class="config-details-row" id="config-details-${index}">
+                        <td colspan="10">
+                            <div class="config-details-content">
+                                <h4>📊 All Configurations for ${item.symbol} (${item.exchange})</h4>
+                                <div class="config-cards">
+                                    ${configsHtml}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderConfigCards(configs, symbolIndex, symbolName) {
+            if (!configs || configs.length === 0) {
+                return '<p style="color: #888;">No configurations available</p>';
+            }
+            
+            return configs.map((config, idx) => {
+                const isBest = idx === 0;
+                const formatVal = (val) => val !== null && val !== undefined ? val.toFixed(2) : '-';
+                
+                return `
+                    <div class="config-card ${isBest ? 'best' : ''}">
+                        <div class="config-header">
+                            <span class="config-prob">${((config.exceed_prob || 0) * 100).toFixed(2)}%</span>
+                            <span class="config-badge">${isBest ? '🏆 BEST' : '#' + (idx + 1)}</span>
+                        </div>
+                        <div class="config-details">
+                            <span><span class="label">V-Gap:</span> <span class="value">${config.vertical_gap}</span></span>
+                            <span><span class="label">H-Gap:</span> <span class="value">${config.horizontal_gap}</span></span>
+                            <span><span class="label">C-Days:</span> <span class="value">${config.continuous_days}</span></span>
+                            <span><span class="label">Avg:</span> <span class="value">${config.average?.toFixed(2) || '-'}</span></span>
+                            <span><span class="label">X→Y:</span> <span class="value">${config.x} → ${config.y}</span></span>
+                            <span><span class="label">Exchange:</span> <span class="value">${config.exchange || '-'}</span></span>
+                        </div>
+                        <div class="percentile-section">
+                            <div class="percentile-item">
+                                <span class="percentile-label">P5</span>
+                                <span class="percentile-val p5">${formatVal(config.p5)}</span>
+                            </div>
+                            <div class="percentile-item">
+                                <span class="percentile-label">P10</span>
+                                <span class="percentile-val p10">${formatVal(config.p10)}</span>
+                            </div>
+                            <div class="percentile-item">
+                                <span class="percentile-label">P20</span>
+                                <span class="percentile-val p20">${formatVal(config.p20)}</span>
+                            </div>
+                            <div class="percentile-item">
+                                <span class="percentile-label">P40</span>
+                                <span class="percentile-val p40">${formatVal(config.p40)}</span>
+                            </div>
+                            <div class="percentile-item">
+                                <span class="percentile-label">P50</span>
+                                <span class="percentile-val">${formatVal(config.p50)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleConfigDetails(index) {
+            const row = document.getElementById(`config-details-${index}`);
+            const expandableRow = row.previousElementSibling;
+            
+            row.classList.toggle('show');
+            expandableRow.classList.toggle('expanded');
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingIndicator').classList.toggle('hidden', !show);
+            document.getElementById('runBtn').disabled = show;
+        }
+
+        function showError(message) {
+            const el = document.getElementById('errorMessage');
+            el.textContent = message;
+            el.classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.add('hidden');
+        }
+
+        function showSuccess(message) {
+            const el = document.getElementById('successMessage');
+            el.textContent = message;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 5000);
+        }
+
+        function hideResults() {
+            document.getElementById('resultsSection').classList.add('hidden');
+        }
+
+        // ============================================================================
+        // TAB NAVIGATION
+        // ============================================================================
+        
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Load previous runs if switching to that tab
+            if (tabName === 'previous-runs') {
+                loadRuns(1);
+            }
+        }
+
+        // ============================================================================
+        // PREVIOUS RUNS FUNCTIONALITY
+        // ============================================================================
+        
+        let currentRunsPage = 1;
+        let totalRunsPages = 1;
+        let currentResultsPage = 1;
+        let totalResultsPages = 1;
+        let selectedStrategyId = null;
+
+        async function loadRuns(page = 1) {
+            if (page < 1) return;
+            
+            try {
+                const limit = 10;
+                const offset = (page - 1) * limit;
+                const response = await fetch(`/api/runs?limit=${limit}&offset=${offset}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                currentRunsPage = page;
+                totalRunsPages = Math.ceil(data.total / limit);
+                
+                renderRunsList(data.runs);
+                updateRunsPagination();
+            } catch (error) {
+                showError('Error loading runs: ' + error.message);
+            }
+        }
+
+        function renderRunsList(runs) {
+            const container = document.getElementById('runsList');
+            
+            if (!runs || runs.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;">No previous runs found. Run a strategy to see results here.</p>';
+                return;
+            }
+            
+            container.innerHTML = runs.map(run => `
+                <div class="run-item" onclick="viewRunDetails('${run.id}')">
+                    <div class="run-info">
+                        <span class="run-id">Strategy ID: ${run.id}</span>
+                        <span class="run-date">📅 ${run.when_added}</span>
+                    </div>
+                    <span class="run-count">${run.result_count} results</span>
+                </div>
+            `).join('');
+        }
+
+        function updateRunsPagination() {
+            document.getElementById('runsPageInfo').textContent = `Page ${currentRunsPage} of ${totalRunsPages}`;
+            document.getElementById('runsPrevBtn').disabled = currentRunsPage <= 1;
+            document.getElementById('runsNextBtn').disabled = currentRunsPage >= totalRunsPages;
+        }
+
+        async function viewRunDetails(strategyId) {
+            selectedStrategyId = strategyId;
+            document.getElementById('runDetailsTitle').textContent = `Run: ${strategyId}`;
+            
+            // Hide runs list, show details view
+            document.getElementById('runsListView').classList.add('hidden');
+            document.getElementById('runDetailsView').classList.remove('hidden');
+            
+            // Load run data
+            await Promise.all([
+                loadRunSummary(strategyId),
+                loadBestPerStock(strategyId),
+                loadRunResults(1),
+                loadStockFilter(strategyId)
+            ]);
+        }
+
+        function showRunsList() {
+            document.getElementById('runDetailsView').classList.add('hidden');
+            document.getElementById('runsListView').classList.remove('hidden');
+            selectedStrategyId = null;
+        }
+
+        async function loadRunSummary(strategyId) {
+            try {
+                const response = await fetch(`/api/runs/${strategyId}/summary`);
+                const summary = await response.json();
+                
+                document.getElementById('runSummaryStats').innerHTML = `
+                    <div class="stat-card">
+                        <div class="value">${summary.total_results || 0}</div>
+                        <div class="label">Total Results</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value">${summary.unique_symbols || 0}</div>
+                        <div class="label">Symbols Analyzed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value">${((summary.max_exceed_prob || 0) * 100).toFixed(1)}%</div>
+                        <div class="label">Best Exceed Prob</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value">${summary.best_overall?.symbol || '-'}</div>
+                        <div class="label">Top Symbol</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading summary:', error);
+            }
+        }
+
+        async function loadBestPerStock(strategyId) {
+            try {
+                const response = await fetch(`/api/runs/${strategyId}/best-per-stock`);
+                const data = await response.json();
+                
+                const tbody = document.getElementById('bestPerStockBody');
+                tbody.innerHTML = data.results.map(item => `
+                    <tr>
+                        <td>
+                            <button class="stock-btn" onclick="showTopConfigs('${item.stock}', '${item.exchange}')">
+                                ${item.stock}
+                            </button>
+                        </td>
+                        <td>${item.exchange}</td>
+                        <td>
+                            <div class="prob-bar">
+                                <div class="prob-bar-fill" style="width: ${(item.exceed_prob * 100)}%"></div>
+                            </div>
+                            ${(item.exceed_prob * 100).toFixed(1)}%
+                        </td>
+                        <td>${item.average?.toFixed(2) || '-'}</td>
+                        <td>${item.vertical_gap}</td>
+                        <td>${item.horizontal_gap}</td>
+                        <td>${item.continuous_days}</td>
+                        <td>${item.x} → ${item.y}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading best per stock:', error);
+            }
+        }
+
+        async function loadStockFilter(strategyId) {
+            try {
+                const response = await fetch(`/api/runs/${strategyId}/stocks`);
+                const data = await response.json();
+                
+                const select = document.getElementById('filterStock');
+                select.innerHTML = '<option value="">All Stocks</option>' + 
+                    data.stocks.map(s => `<option value="${s.stock}">${s.stock} (${s.exchange})</option>`).join('');
+            } catch (error) {
+                console.error('Error loading stocks:', error);
+            }
+        }
+
+        async function loadRunResults(page = 1) {
+            if (!selectedStrategyId || page < 1) return;
+            
+            try {
+                const perPage = 25;
+                const stock = document.getElementById('filterStock').value;
+                const exchange = document.getElementById('filterExchange').value;
+                const sortBy = document.getElementById('sortBy').value;
+                const sortOrder = document.getElementById('sortOrder').value;
+                
+                let url = `/api/runs/${selectedStrategyId}?page=${page}&per_page=${perPage}`;
+                url += `&sort_by=${sortBy}&sort_order=${sortOrder}`;
+                if (stock) url += `&stock=${stock}`;
+                if (exchange) url += `&exchange=${exchange}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                currentResultsPage = data.pagination.page;
+                totalResultsPages = data.pagination.total_pages;
+                
+                renderRunResultsTable(data.results);
+                updateResultsPagination();
+            } catch (error) {
+                console.error('Error loading results:', error);
+            }
+        }
+
+        function renderRunResultsTable(results) {
+            const tbody = document.getElementById('runResultsBody');
+            const startIdx = (currentResultsPage - 1) * 25;
+            
+            tbody.innerHTML = results.map((item, index) => `
+                <tr>
+                    <td>${startIdx + index + 1}</td>
+                    <td>
+                        <button class="stock-btn" onclick="showTopConfigs('${item.stock}', '${item.exchange}')">
+                            ${item.stock}
+                        </button>
+                    </td>
+                    <td>${item.exchange}</td>
+                    <td>
+                        <div class="prob-bar">
+                            <div class="prob-bar-fill" style="width: ${(item.exceed_prob * 100)}%"></div>
+                        </div>
+                        ${(item.exceed_prob * 100).toFixed(1)}%
+                    </td>
+                    <td>${item.average?.toFixed(2) || '-'}</td>
+                    <td>${item.vertical_gap}</td>
+                    <td>${item.horizontal_gap}</td>
+                    <td>${item.continuous_days}</td>
+                    <td>${item.x} → ${item.y}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateResultsPagination() {
+            document.getElementById('resultsPageInfo').textContent = `Page ${currentResultsPage} of ${totalResultsPages}`;
+            document.getElementById('resultsPrevBtn').disabled = currentResultsPage <= 1;
+            document.getElementById('resultsNextBtn').disabled = currentResultsPage >= totalResultsPages;
+        }
+
+        function filterRunResults() {
+            loadRunResults(1);
+        }
+
+        // ============================================================================
+        // TOP CONFIGS MODAL
+        // ============================================================================
+
+        async function showTopConfigs(stock, exchange) {
+            if (!selectedStrategyId) return;
+            
+            try {
+                let url = `/api/runs/${selectedStrategyId}/stock/${stock}?top_n=4`;
+                if (exchange) url += `&exchange=${exchange}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                document.getElementById('modalTitle').textContent = `Top 4 Configurations for ${stock} (${exchange})`;
+                
+                const tbody = document.getElementById('configsBody');
+                tbody.innerHTML = data.configs.map((item, index) => `
+                    <tr>
+                        <td><strong>#${index + 1}</strong></td>
+                        <td>
+                            <div class="prob-bar">
+                                <div class="prob-bar-fill" style="width: ${(item.exceed_prob * 100)}%"></div>
+                            </div>
+                            ${(item.exceed_prob * 100).toFixed(1)}%
+                        </td>
+                        <td>${item.average?.toFixed(2) || '-'}</td>
+                        <td>${item.vertical_gap}</td>
+                        <td>${item.horizontal_gap}</td>
+                        <td>${item.continuous_days}</td>
+                        <td>${item.x} → ${item.y}</td>
+                        <td>${item.profit_days || '-'}</td>
+                    </tr>
+                `).join('');
+                
+                document.getElementById('configsModal').classList.add('active');
+            } catch (error) {
+                console.error('Error loading top configs:', error);
+                showError('Error loading top configurations');
+            }
+        }
+
+        function closeConfigsModal() {
+            document.getElementById('configsModal').classList.remove('active');
+        }
+
+        // Close modal on outside click
+        document.getElementById('configsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeConfigsModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeConfigsModal();
+            }
+        });
+    </script>
+</body>
+</html>
