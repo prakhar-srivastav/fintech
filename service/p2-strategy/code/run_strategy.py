@@ -96,7 +96,7 @@ def find_best_points(day_data: Dict[str, List[Dict[str, Any]]],
                     'x_avg': (day_data[list(day_data.keys())[day]][time_points[x]]['high'] + day_data[list(day_data.keys())[day]][time_points[x]]['open'] + day_data[list(day_data.keys())[day]][time_points[x]]['close']) / 3,
                     'y_avg': (day_data[list(day_data.keys())[day]][time_points[y]]['low'] + day_data[list(day_data.keys())[day]][time_points[y]]['open'] + day_data[list(day_data.keys())[day]][time_points[y]]['close']) / 3
                 })
-                window_sum += window[-1]['y_avg'] - window[-1]['x_avg']
+                window_sum += (window[-1]['y_avg'] / window[-1]['x_avg'] - 1.0) * 100.0
                 if window.maxlen == len(window):
                     if window_sum > vertical_gap:
                         exceeded += 1
@@ -108,7 +108,7 @@ def find_best_points(day_data: Dict[str, List[Dict[str, Any]]],
                     _highest = max(_highest, window_sum)
                     _lowest = min(_lowest, window_sum)
                     removed = window.popleft()
-                    window_sum -= removed['y_avg'] - removed['x_avg']
+                    window_sum -= (removed['y_avg'] / removed['x_avg'] - 1.0) * 100.0
             scores.append({
                 'exceed_prob': exceeded / total_count,
                 'profit_prob': profit_days / total_count,

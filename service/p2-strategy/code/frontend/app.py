@@ -50,7 +50,7 @@ db_client = DBClient(DB_CONFIG)
 # Default configurations
 DEFAULT_CONFIG = {
     'vertical_gaps': [0.5, 1, 2],
-    'horizontal_gaps': [2],
+    'horizontal_gaps': [1, 2],
     'continuous_days': [3, 5, 7, 10, 15, 20],
     'granularity': '3minute',
     'nse_stocks': list(NSE_NIFTY_50.keys()),
