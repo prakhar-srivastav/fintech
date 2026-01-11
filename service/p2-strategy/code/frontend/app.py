@@ -260,8 +260,8 @@ def generate_summary(strategy_id: str) -> Dict[str, Any]:
     
     for symbol, symbol_data in by_symbol.items():
         # Sort configs by exceed_prob descending
-        symbol_data.sort(key=lambda x: x.get('exceed_prob', 0), reverse=True)
-        
+        symbol_data.sort(key=lambda x: (x.get('exceed_prob', 0), x.get('average', 0)), reverse=True)
+
         # Get the best config
         best_config = symbol_data[0]
         max_exceed = best_config.get('exceed_prob', 0)
@@ -289,8 +289,8 @@ def generate_summary(strategy_id: str) -> Dict[str, Any]:
         })
     
     # Sort by max exceed_prob
-    symbol_scores.sort(key=lambda x: x['exceed_prob'], reverse=True)
-    
+    symbol_scores.sort(key=lambda x: (x['exceed_prob'], x['average']), reverse=True)
+
     return {
         'symbol_scores': symbol_scores,
         'total_symbols': len(by_symbol)
