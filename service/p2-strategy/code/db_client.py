@@ -431,68 +431,236 @@ class DBClient:
                     'has_next': page < total_pages
                 }
             }
-
-    def get_pending_strategy_scheduler_jobs(self):
+    
+    def create_strategy_execution(self, strategy_id, simulate_mode=True, total_money=None, selected_configs=None):
         """
-        Get pending strategy scheduler jobs.
+        Create a new strategy execution record.
+        
+        Args:
+            strategy_id: The strategy run ID
+            simulate_mode: Whether to run in simulation mode (default: True)
+            total_money: Total money to invest (required if not simulate_mode)
+            selected_configs: List of dicts with 'id' and 'weight_percent' keys
         
         Returns:
-            List of pending jobs with id and config
+            Dict with execution details
         """
         query = """
-        SELECT id, config FROM strategy_scheduler_jobs
-        WHERE status = 'scheduled'
-        ORDER BY created_at ASC
+        INSERT INTO strategy_executions (strategy_id, status, simulate_mode, total_money, created_at)
+        VALUES (%s, %s, %s, %s, %s)
+        """
+        query_2 = """
+        INSERT INTO strategy_execution_details (execution_id, strategy_result_id, weight_percent)
+        VALUES (%s, %s, %s)
+        """
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (strategy_id, 'queued', simulate_mode, total_money, datetime.now()))
+            execution_id = cursor.lastrowid
+            if selected_configs:
+                detail_rows = [(execution_id, cfg['id'], cfg.get('weight_percent', 0)) for cfg in selected_configs]
+                cursor.executemany(query_2, detail_rows)
+            conn.commit()
+            cursor.close()
+            return {
+                'execution_id': execution_id,
+                'strategy_id': strategy_id,
+                'simulate_mode': simulate_mode,
+                'total_money': total_money,
+                'status': 'queued',
+                'configs_count': len(selected_configs) if selected_configs else 0,
+                'created_at': datetime.now().isoformat()
+            }
+
+    def get_strategy_execution_data_by_id(self, execution_id):
+        """
+        Get strategy execution data by ID.
+        
+        Args:
+            execution_id: The execution ID
+        
+        Returns:
+            Dict with execution data or None if not found
+        """
+        query = """
+        SELECT id, strategy_id, status, simulate_mode, total_money, 
+               created_at, started_at, completed_at, error_message
+        FROM strategy_executions 
+        WHERE id = %s
         """
         with self.get_connection() as conn:
             cursor = conn.cursor(dictionary=True)
-            cursor.execute(query)
-            jobs = cursor.fetchall()
+            cursor.execute(query, (execution_id,))
+            result = cursor.fetchone()
             cursor.close()
-            
-            # Parse config JSON
-            for job in jobs:
-                if job.get('config'):
-                    try:
-                        job['config'] = json.loads(job['config'])
-                    except:
-                        pass
-            
-            return jobs
+            return result
 
-    def mark_strategy_scheduler_job_completed(self, job_id):
+    def get_strategy_execution_details(self, execution_id):
         """
-        Mark a strategy scheduler job as completed.
+        Get strategy execution details (selected configs with weights).
         
         Args:
-            job_id: The job ID to mark as completed
+            execution_id: The execution ID
+        
+        Returns:
+            List of dicts with execution detail records
         """
         query = """
-        UPDATE strategy_scheduler_jobs
-        SET status = 'completed', completed_at = NOW()
+        SELECT sed.id, sed.execution_id, sed.strategy_result_id, sed.weight_percent,
+               sr.stock, sr.exchange, sr.x, sr.y, sr.exceed_prob, sr.average,
+               sr.vertical_gap, sr.horizontal_gap, sr.continuous_days
+        FROM strategy_execution_details sed
+        JOIN strategy_results sr ON sed.strategy_result_id = sr.id
+        WHERE sed.execution_id = %s
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(query, (execution_id,))
+            results = cursor.fetchall()
+            cursor.close()
+            
+            # Convert Decimal to float for JSON serialization
+            for row in results:
+                for key in ['weight_percent', 'exceed_prob', 'average', 'vertical_gap', 'horizontal_gap']:
+                    if row.get(key) is not None:
+                        row[key] = float(row[key])
+            
+            return results
+
+    def get_strategy_result_by_id(self, strategy_result_id):
+        """
+        Get a single strategy result by ID.
+        
+        Args:
+            strategy_result_id: The strategy result ID
+        
+        Returns:
+            Dict with strategy result data or None if not found
+        """
+        query = """
+        SELECT id, strategy_id, stock, exchange, x, y, exceed_prob, profit_days, 
+               average, total_count, highest, p5, p10, p20, p40, p50,
+               vertical_gap, horizontal_gap, continuous_days
+        FROM strategy_results 
+        WHERE id = %s
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(query, (strategy_result_id,))
+            result = cursor.fetchone()
+            cursor.close()
+            
+            if result:
+                # Convert Decimal to float for JSON serialization
+                for key in ['exceed_prob', 'average', 'highest', 'p5', 'p10', 'p20', 'p40', 'p50', 
+                           'vertical_gap', 'horizontal_gap']:
+                    if result.get(key) is not None:
+                        result[key] = float(result[key])
+            
+            return result
+
+    def store_strategy_execution_task(self, task):
+        """
+        Store a strategy execution task.
+        
+        Args:
+            task: Dict with task details containing:
+                - execution_detail_id: ID of the execution detail
+                - timestamp_of_execution: When to execute
+                - day_of_execution: Day number in the execution sequence
+                - current_money: Current money allocated
+                - current_shares: Current number of shares held
+                - price_during_order: Price at which order was placed (nullable)
+                - order_type: 'buy' or 'sell'
+                - simulate_mode: Whether in simulation mode
+                - x: X point from strategy
+                - y: Y point from strategy
+                - stock: Stock symbol
+                - exchange: Exchange name
+                - days_remaining: Days remaining in execution
+                - previous_task_id: ID of the previous task (-1 if first)
+        
+        Returns:
+            int: The auto-generated task ID
+        """
+        query = """
+        INSERT INTO strategy_execution_tasks (
+            execution_detail_id, timestamp_of_execution, day_of_execution,
+            current_money, current_shares, price_during_order, order_type,
+            simulate_mode, x, y, stock, exchange, days_remaining, 
+            previous_task_id, status, created_at
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (
+                task.get('execution_detail_id'),
+                task.get('timestamp_of_execution'),
+                task.get('day_of_execution', 0),
+                task.get('current_money'),
+                task.get('current_shares', 0),
+                task.get('price_during_order'),
+                task.get('order_type', 'buy'),
+                task.get('simulate_mode', True),
+                task.get('x'),
+                task.get('y'),
+                task.get('stock'),
+                task.get('exchange'),
+                task.get('days_remaining', 0),
+                task.get('previous_task_id', -1),
+                'pending',
+                datetime.now()
+            ))
+            conn.commit()
+            task_id = cursor.lastrowid
+            cursor.close()
+            return task_id
+
+
+    def change_strategy_execution_run_status(self, execution_id, status):
+        """
+        Change the status of a strategy execution run.
+        
+        Args:
+            execution_id: The execution ID
+            status: New status ('queued', 'running', 'completed', 'failed')
+        """
+        query = """
+        UPDATE strategy_executions
+        SET status = %s
         WHERE id = %s
         """
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(query, (job_id,))
+            cursor.execute(query, (status, execution_id))
             conn.commit()
             cursor.close()
 
-    def mark_strategy_scheduler_job_failed(self, job_id, error_message=None):
+
+    def get_strategy_execution_runs(self, status=None):
         """
-        Mark a strategy scheduler job as failed.
+        Get strategy execution runs filtered by status.
         
         Args:
-            job_id: The job ID to mark as failed
-            error_message: Optional error message
+            status: Filter by status (optional)
+        
+        Returns:
+            Dict with 'runs' list of execution run records
         """
         query = """
-        UPDATE strategy_scheduler_jobs
-        SET status = 'failed', error_message = %s, completed_at = NOW()
-        WHERE id = %s
+        SELECT id, strategy_id, status, simulate_mode, total_money, created_at
+        FROM strategy_executions
         """
+        params = []
+        if status:
+            query += " WHERE status = %s"
+            params.append(status)
+        
         with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (error_message, job_id))
-            conn.commit()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(query, params)
+            results = cursor.fetchall()
             cursor.close()
+            return {'runs': results}

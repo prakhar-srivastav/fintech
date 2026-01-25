@@ -1,0 +1,4 @@
+apiVersion: v2
+name: p2-strategy
+version: 0.1.0
+description: A Helm chart for deploying the P2 Strategy services (frontend, config-poller, execution-poller)

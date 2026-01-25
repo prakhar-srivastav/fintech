@@ -106,3 +106,84 @@ INSERT INTO default_strategy_config (parameter, value, description) VALUES
     ('horizontal_gaps', '2', 'Horizontal gap values'),
     ('continuous_days', '3,5,7,10', 'Number of continuous days'),
     ('granularity', '3minute', 'Data granularity');
+
+-- ============================================================================
+-- Strategy Execution Tables
+-- ============================================================================
+
+-- Table to store strategy execution requests
+CREATE TABLE strategy_executions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    strategy_id INT NOT NULL,
+    status VARCHAR(20) DEFAULT 'queued',
+    simulate_mode BOOLEAN DEFAULT TRUE,
+    total_money DECIMAL(15,2) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    started_at TIMESTAMP NULL,
+    completed_at TIMESTAMP NULL,
+    error_message TEXT,
+    
+    -- Foreign key to strategy_runs
+    CONSTRAINT fk_strategy_executions_run FOREIGN KEY (strategy_id) 
+        REFERENCES strategy_runs(id) ON DELETE CASCADE,
+    
+    -- Indexes
+    INDEX idx_strategy_executions_strategy_id (strategy_id),
+    INDEX idx_strategy_executions_status (status),
+    INDEX idx_strategy_executions_created_at (created_at)
+);
+
+-- Table to store which strategy results are included in an execution
+CREATE TABLE strategy_execution_details (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    execution_id INT NOT NULL,
+    strategy_result_id INT NOT NULL,
+    weight_percent DECIMAL(5,2) DEFAULT 0,
+    
+    -- Foreign keys
+    CONSTRAINT fk_execution_details_execution FOREIGN KEY (execution_id) 
+        REFERENCES strategy_executions(id) ON DELETE CASCADE,
+    CONSTRAINT fk_execution_details_result FOREIGN KEY (strategy_result_id) 
+        REFERENCES strategy_results(id) ON DELETE CASCADE,
+    
+    -- Indexes
+    INDEX idx_execution_details_execution_id (execution_id),
+    INDEX idx_execution_details_result_id (strategy_result_id),
+    
+    -- Unique constraint to prevent duplicate entries
+    UNIQUE KEY uq_execution_details_unique (execution_id, strategy_result_id)
+);
+
+-- Table to store strategy execution tasks (individual trade tasks)
+CREATE TABLE strategy_execution_tasks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    execution_detail_id INT NOT NULL,
+    timestamp_of_execution VARCHAR(50),
+    day_of_execution INT DEFAULT 0,
+    current_money DECIMAL(15,2),
+    current_shares INT DEFAULT 0,
+    price_during_order DECIMAL(12,4) NULL,
+    order_type VARCHAR(10) DEFAULT 'buy',
+    simulate_mode BOOLEAN DEFAULT TRUE,
+    x VARCHAR(50),
+    y VARCHAR(50),
+    stock VARCHAR(50),
+    exchange VARCHAR(50),
+    days_remaining INT DEFAULT 0,
+    previous_task_id INT DEFAULT -1,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    executed_at TIMESTAMP NULL,
+    error_message TEXT,
+    
+    -- Foreign key to strategy_execution_details
+    CONSTRAINT fk_execution_tasks_detail FOREIGN KEY (execution_detail_id) 
+        REFERENCES strategy_execution_details(id) ON DELETE CASCADE,
+    
+    -- Indexes
+    INDEX idx_execution_tasks_detail_id (execution_detail_id),
+    INDEX idx_execution_tasks_status (status),
+    INDEX idx_execution_tasks_created_at (created_at),
+    INDEX idx_execution_tasks_stock (stock),
+    INDEX idx_execution_tasks_order_type (order_type)
+);

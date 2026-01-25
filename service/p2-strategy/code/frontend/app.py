@@ -18,6 +18,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from db_client import DBClient
 from strategy_config_runner import process_strategy_scheduler_job
 
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -250,6 +251,62 @@ def get_run_summary(strategy_id):
     except Exception as e:
         logger.error(f"Error fetching run summary: {e}")
         return jsonify({'error': str(e)}), 500
+
+# ============================================================================
+# EXECUTION OF RUNS INSTANCE
+# ============================================================================
+
+@app.route('/api/runs/<strategy_id>/execute', methods=['POST'])
+def execute_strategy_run(strategy_id):
+    """
+    Execute a specific strategy run instance by its ID.
+    
+    Expected payload:
+    {
+        "simulate_mode": true/false,
+        "total_money": 100000 (required if simulate_mode is false),
+        "selected_configs": [
+            {"id": 123, "weight_percent": 25.5},
+            {"id": 456, "weight_percent": 74.5}
+        ]
+    }
+    """
+    try:
+        data = request.json
+        simulate_mode = data.get('simulate_mode', True)
+        total_money = data.get('total_money', None)
+        selected_configs = data.get('selected_configs', [])
+        
+        # Validate: if not simulate mode, total_money is required
+        if not simulate_mode and not total_money:
+            return jsonify({
+                'status': 'failure',
+                'error': 'Total money is required when not in simulate mode'
+            }), 400
+        
+        # Validate: weight percentages should sum to ~100%
+        if selected_configs:
+            total_weight = sum(c.get('weight_percent', 0) for c in selected_configs)
+            if abs(total_weight - 100) > 0.01:
+                return jsonify({
+                    'status': 'failure',
+                    'error': f'Weight percentages must sum to 100% (current: {total_weight:.2f}%)'
+                }), 400
+        
+        result = db_client.create_strategy_execution(
+            strategy_id, 
+            simulate_mode=simulate_mode,
+            total_money=total_money,
+            selected_configs=selected_configs
+        )
+        return jsonify({
+            'status': 'success',
+            'details': result
+        }), 200
+    except Exception as e:
+        logger.error(f"Error executing strategy run {strategy_id}: {e}")
+        return jsonify({'status': 'failure',
+                     'error': str(e)}), 500
 
 
 if __name__ == '__main__':

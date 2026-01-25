@@ -1,0 +1,143 @@
+{{- if .Values.frontend.enabled }}
+---
+# P2 Strategy Frontend Deployment (app.py)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: p2-strategy-frontend
+  labels:
+    app: p2-strategy-frontend
+    component: frontend
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  selector:
+    matchLabels:
+      app: p2-strategy-frontend
+  template:
+    metadata:
+      labels:
+        app: p2-strategy-frontend
+        component: frontend
+    spec:
+      containers:
+        - name: p2-strategy-frontend
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SERVICE
+              value: {{ .Values.frontend.serviceArg | quote }}
+            - name: DB_HOST
+              value: {{ .Values.DB_CONFIG.DB_HOST | quote }}
+            - name: DB_USER
+              value: {{ .Values.DB_CONFIG.DB_USER | quote }}
+            - name: DB_PASSWORD
+              value: {{ .Values.DB_CONFIG.DB_PASSWORD | quote }}
+            - name: DB_NAME
+              value: {{ .Values.DB_CONFIG.DB_NAME | quote }}
+            - name: DB_PORT
+              value: {{ .Values.DB_CONFIG.DB_PORT | quote }}
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8082
+            initialDelaySeconds: 15
+            periodSeconds: 10
+{{- end }}
+
+{{- if .Values.configPoller.enabled }}
+---
+# P2 Strategy Config Poller Deployment (strategy_config_poller.py)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: p2-strategy-config-poller
+  labels:
+    app: p2-strategy-config-poller
+    component: config-poller
+spec:
+  replicas: {{ .Values.configPoller.replicaCount }}
+  selector:
+    matchLabels:
+      app: p2-strategy-config-poller
+  template:
+    metadata:
+      labels:
+        app: p2-strategy-config-poller
+        component: config-poller
+    spec:
+      containers:
+        - name: p2-strategy-config-poller
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SERVICE
+              value: {{ .Values.configPoller.serviceArg | quote }}
+            - name: DB_HOST
+              value: {{ .Values.DB_CONFIG.DB_HOST | quote }}
+            - name: DB_USER
+              value: {{ .Values.DB_CONFIG.DB_USER | quote }}
+            - name: DB_PASSWORD
+              value: {{ .Values.DB_CONFIG.DB_PASSWORD | quote }}
+            - name: DB_NAME
+              value: {{ .Values.DB_CONFIG.DB_NAME | quote }}
+            - name: DB_PORT
+              value: {{ .Values.DB_CONFIG.DB_PORT | quote }}
+            - name: POLL_INTERVAL
+              value: {{ .Values.POLLER_CONFIG.POLL_INTERVAL | quote }}
+          resources:
+            {{- toYaml .Values.configPoller.resources | nindent 12 }}
+{{- end }}
+
+{{- if .Values.executionPoller.enabled }}
+---
+# P2 Strategy Execution Poller Deployment (strategy_execution_poller.py)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: p2-strategy-execution-poller
+  labels:
+    app: p2-strategy-execution-poller
+    component: execution-poller
+spec:
+  replicas: {{ .Values.executionPoller.replicaCount }}
+  selector:
+    matchLabels:
+      app: p2-strategy-execution-poller
+  template:
+    metadata:
+      labels:
+        app: p2-strategy-execution-poller
+        component: execution-poller
+    spec:
+      containers:
+        - name: p2-strategy-execution-poller
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SERVICE
+              value: {{ .Values.executionPoller.serviceArg | quote }}
+            - name: DB_HOST
+              value: {{ .Values.DB_CONFIG.DB_HOST | quote }}
+            - name: DB_USER
+              value: {{ .Values.DB_CONFIG.DB_USER | quote }}
+            - name: DB_PASSWORD
+              value: {{ .Values.DB_CONFIG.DB_PASSWORD | quote }}
+            - name: DB_NAME
+              value: {{ .Values.DB_CONFIG.DB_NAME | quote }}
+            - name: DB_PORT
+              value: {{ .Values.DB_CONFIG.DB_PORT | quote }}
+            - name: POLL_INTERVAL
+              value: {{ .Values.POLLER_CONFIG.POLL_INTERVAL | quote }}
+          resources:
+            {{- toYaml .Values.executionPoller.resources | nindent 12 }}
+{{- end }}

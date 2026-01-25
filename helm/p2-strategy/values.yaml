@@ -1,0 +1,68 @@
+# P2 Strategy Services Configuration
+# ====================================
+
+# Common image configuration (used by all services - same Docker image)
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# Database and common environment configuration (matches data-ingester format)
+DB_CONFIG:
+  DB_HOST: ""
+  DB_USER: ""
+  DB_PASSWORD: ""
+  DB_NAME: ""
+  DB_PORT: ""
+
+# Poller configuration
+POLLER_CONFIG:
+  POLL_INTERVAL: ""
+
+# ====================================
+# Frontend Service (app.py)
+# ====================================
+frontend:
+  enabled: true
+  replicaCount: 1
+  service:
+    type: ClusterIP
+    port: 8082
+  serviceArg: "frontend"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# ====================================
+# Config Poller Service (strategy_config_poller.py)
+# ====================================
+configPoller:
+  enabled: true
+  replicaCount: 1
+  serviceArg: "config-poller"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# ====================================
+# Execution Poller Service (strategy_execution_poller.py)
+# ====================================
+executionPoller:
+  enabled: true
+  replicaCount: 1
+  serviceArg: "execution-poller"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi

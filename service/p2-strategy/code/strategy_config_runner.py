@@ -278,7 +278,7 @@ def main():
     master_data.sort(key=lambda x: (x['exceed_prob'], x['average']), reverse=True)
 
 
-def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: int = None) -> int:
+def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> str:
     """
     Process strategy scheduler job from the poller.
     
@@ -294,12 +294,8 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: int = No
         "bse_stocks": ["HDFCBANK"],
     }
     
-    Args:
-        config: Strategy configuration dictionary
-        strategy_id: Optional existing strategy run ID (if provided, skips creating new run)
-    
     Returns:
-        int: The strategy_id (run_id) for the executed strategy
+        str: The strategy_id (run_id) for the executed strategy
     """
     logger.info(f"Processing strategy scheduler job with config: {config}")
     
@@ -320,24 +316,18 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: int = No
     # Initialize DB client
     db_client = DBClient(DB_CONFIG)
     
-    # Create strategy run record only if strategy_id not provided
-    if strategy_id is None:
-        run_config = {
-            'vertical_gaps': vertical_gaps,
-            'horizontal_gaps': horizontal_gaps,
-            'continuous_days': continuous_days_list,
-            'granularity': granularity,
-            'start_date': start_date,
-            'end_date': end_date,
-            'nse_stocks': nse_stocks,
-            'bse_stocks': bse_stocks
-        }
-        
-        # Create the strategy run in the database (returns auto-generated ID)
-        strategy_id = db_client.create_strategy_run(run_config)
-        logger.info(f"Created strategy run with ID: {strategy_id}")
-    else:
-        logger.info(f"Using existing strategy run ID: {strategy_id}")
+    # Create strategy run record
+    run_config = {
+        'vertical_gaps': vertical_gaps,
+        'horizontal_gaps': horizontal_gaps,
+        'continuous_days': continuous_days_list,
+        'granularity': granularity,
+        'start_date': start_date,
+        'end_date': end_date,
+        'nse_stocks': nse_stocks,
+        'bse_stocks': bse_stocks
+    }
+    
     
     master_data = []
     total_combinations = (len(nse_stocks) + len(bse_stocks)) * len(vertical_gaps) * len(horizontal_gaps) * len(continuous_days_list)

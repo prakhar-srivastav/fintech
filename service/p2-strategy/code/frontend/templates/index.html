@@ -720,6 +720,256 @@
             font-size: 0.85rem;
             font-weight: 600;
         }
+        
+        /* Selectable Config Cards */
+        .config-card.selectable {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        .config-card.selectable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        .config-card.selectable.selected {
+            border: 2px solid #4ade80;
+            background: rgba(74, 222, 128, 0.15);
+            box-shadow: 0 0 15px rgba(74, 222, 128, 0.3);
+        }
+        .config-card.selectable.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #4ade80;
+            color: #000;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .config-card .config-id {
+            font-size: 0.7rem;
+            color: #888;
+            margin-top: 5px;
+            font-family: monospace;
+        }
+        
+        /* Selection Actions Bar */
+        .selection-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+        .selection-actions.hidden {
+            display: none;
+        }
+        .selection-info {
+            color: #fff;
+            font-weight: 600;
+        }
+        .selection-info .count {
+            color: #4ade80;
+            font-size: 1.2rem;
+        }
+        .selection-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .selection-buttons button {
+            padding: 8px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .selection-buttons .btn-submit {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: #000;
+        }
+        .selection-buttons .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(74, 222, 128, 0.4);
+        }
+        .selection-buttons .btn-clear {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .selection-buttons .btn-clear:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .selection-buttons .btn-select-all {
+            background: rgba(102, 126, 234, 0.3);
+            color: #fff;
+            border: 1px solid #667eea;
+        }
+        .selection-buttons .btn-select-all:hover {
+            background: rgba(102, 126, 234, 0.5);
+        }
+        
+        /* Execution Modal Styles */
+        .execution-modal {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 700px;
+            width: 95%;
+            max-height: 85vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .execution-modal h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+        .execution-form-group {
+            margin-bottom: 20px;
+        }
+        .execution-form-group label {
+            display: block;
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        .execution-form-group input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 1rem;
+        }
+        .execution-form-group input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .simulate-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .simulate-toggle input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .simulate-toggle .toggle-label {
+            color: #fff;
+            font-weight: 600;
+        }
+        .simulate-toggle .toggle-desc {
+            color: #888;
+            font-size: 0.85rem;
+        }
+        .weight-config-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .weight-config-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .weight-config-item:last-child {
+            margin-bottom: 0;
+        }
+        .weight-config-item .config-info {
+            flex: 1;
+        }
+        .weight-config-item .config-name {
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .weight-config-item .config-meta {
+            color: #888;
+            font-size: 0.8rem;
+            margin-top: 3px;
+        }
+        .weight-config-item .weight-input {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .weight-config-item .weight-input input {
+            width: 70px;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .weight-config-item .weight-input span {
+            color: #888;
+        }
+        .weight-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        .weight-total .total-label {
+            color: #aaa;
+        }
+        .weight-total .total-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .weight-total .total-value.valid {
+            color: #4ade80;
+        }
+        .weight-total .total-value.invalid {
+            color: #f87171;
+        }
+        .execution-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-distribute {
+            background: rgba(102, 126, 234, 0.3);
+            color: #fff;
+            border: 1px solid #667eea;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .btn-distribute:hover {
+            background: rgba(102, 126, 234, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -938,7 +1188,20 @@
                 <!-- Symbol Scores with Configs (Same as Run Strategy results) -->
                 <div class="card">
                     <h2>🏆 Stock Results by Max Exceed Probability</h2>
-                    <p style="color: #888; margin-bottom: 15px;">Click on a stock row to expand and see all configurations with percentile profit values</p>
+                    <p style="color: #888; margin-bottom: 15px;">Click on a stock row to expand configurations. Click on config cards to select them.</p>
+                    
+                    <!-- Selection Actions Bar -->
+                    <div class="selection-actions hidden" id="selectionActionsBar">
+                        <div class="selection-info">
+                            <span class="count" id="selectedCount">0</span> configurations selected
+                        </div>
+                        <div class="selection-buttons">
+                            <button class="btn-select-all" onclick="selectAllConfigs()">Select All Visible</button>
+                            <button class="btn-clear" onclick="clearSelection()">Clear Selection</button>
+                            <button class="btn-submit" onclick="submitSelectedConfigs()">✓ Submit Selected</button>
+                        </div>
+                    </div>
+                    
                     <div class="table-container">
                         <table class="results-table" id="runSymbolScoresTable">
                             <thead>
@@ -988,6 +1251,52 @@
                             <!-- Populated dynamically -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Execution Modal -->
+        <div class="modal-overlay" id="executionModal">
+            <div class="execution-modal">
+                <div class="modal-header">
+                    <h3>🚀 Execute Strategy</h3>
+                    <button class="modal-close" onclick="closeExecutionModal()">×</button>
+                </div>
+                
+                <!-- Simulate Mode Toggle -->
+                <div class="execution-form-group">
+                    <label class="simulate-toggle">
+                        <input type="checkbox" id="simulateMode" checked onchange="toggleSimulateMode()">
+                        <div>
+                            <div class="toggle-label">Simulate Mode</div>
+                            <div class="toggle-desc">Run in simulation without real money</div>
+                        </div>
+                    </label>
+                </div>
+                
+                <!-- Total Money Input (always shown, required when not simulating) -->
+                <div class="execution-form-group" id="totalMoneyGroup">
+                    <label for="totalMoney">💰 Total Investment Amount (₹) <span id="totalMoneyRequired" style="color: #888; font-size: 0.8rem;">(optional for simulation)</span></label>
+                    <input type="number" id="totalMoney" placeholder="Enter total amount to invest" min="1000" step="1000">
+                </div>
+                
+                <!-- Selected Configs with Weight -->
+                <div class="execution-form-group">
+                    <label>📊 Selected Configurations - Assign Weight Percentages</label>
+                    <button class="btn-distribute" onclick="distributeWeightsEqually()">⚖️ Distribute Equally</button>
+                    <div class="weight-config-list" id="weightConfigList">
+                        <!-- Populated dynamically -->
+                    </div>
+                    <div class="weight-total">
+                        <span class="total-label">Total Weight:</span>
+                        <span class="total-value" id="totalWeightValue">0%</span>
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="execution-actions">
+                    <button class="btn btn-secondary" onclick="closeExecutionModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="confirmExecution()">🚀 Execute</button>
                 </div>
             </div>
         </div>
@@ -1406,6 +1715,9 @@
         let currentResultsPage = 1;
         let totalResultsPages = 1;
         let selectedStrategyId = null;
+        
+        // Selection state for config cards
+        let selectedConfigIds = new Set();
 
         async function loadRuns(page = 1) {
             console.log('=== LOAD RUNS CALLED ===');
@@ -1576,6 +1888,10 @@
             selectedStrategyId = strategyId;
             document.getElementById('runDetailsTitle').textContent = `Run: ${strategyId}`;
             
+            // Clear any previous selection
+            selectedConfigIds.clear();
+            updateSelectionUI();
+            
             // Hide runs list, show details view
             document.getElementById('runsListView').classList.add('hidden');
             document.getElementById('runDetailsView').classList.remove('hidden');
@@ -1588,6 +1904,10 @@
             document.getElementById('runDetailsView').classList.add('hidden');
             document.getElementById('runsListView').classList.remove('hidden');
             selectedStrategyId = null;
+            
+            // Clear selection when going back
+            selectedConfigIds.clear();
+            updateSelectionUI();
         }
 
         async function loadRunSummary(strategyId) {
@@ -1679,9 +1999,13 @@
             return configs.map((config, idx) => {
                 const isBest = idx === 0;
                 const formatVal = (val) => val !== null && val !== undefined ? parseFloat(val).toFixed(2) : '-';
+                const configId = config.id || config.result_id || `${symbolName}-${idx}`;
+                const isSelected = selectedConfigIds.has(configId);
                 
                 return `
-                    <div class="config-card ${isBest ? 'best' : ''}">
+                    <div class="config-card selectable ${isBest ? 'best' : ''} ${isSelected ? 'selected' : ''}" 
+                         data-config-id="${configId}"
+                         onclick="toggleConfigSelection(event, '${configId}')">
                         <div class="config-header">
                             <span class="config-prob">${((config.exceed_prob || 0) * 100).toFixed(2)}%</span>
                             <span class="config-badge">${isBest ? '🏆 BEST' : '#' + (idx + 1)}</span>
@@ -1716,9 +2040,257 @@
                                 <span class="percentile-val">${formatVal(config.p50)}</span>
                             </div>
                         </div>
+                        <div class="config-id">ID: ${configId}</div>
                     </div>
                 `;
             }).join('');
+        }
+
+        // ============================================================================
+        // CONFIG SELECTION FUNCTIONALITY
+        // ============================================================================
+        
+        function toggleConfigSelection(event, configId) {
+            event.stopPropagation(); // Prevent row toggle
+            
+            const card = event.currentTarget;
+            
+            if (selectedConfigIds.has(configId)) {
+                selectedConfigIds.delete(configId);
+                card.classList.remove('selected');
+            } else {
+                selectedConfigIds.add(configId);
+                card.classList.add('selected');
+            }
+            
+            updateSelectionUI();
+        }
+        
+        function updateSelectionUI() {
+            const count = selectedConfigIds.size;
+            const actionBar = document.getElementById('selectionActionsBar');
+            const countEl = document.getElementById('selectedCount');
+            
+            if (count > 0) {
+                actionBar.classList.remove('hidden');
+                countEl.textContent = count;
+            } else {
+                actionBar.classList.add('hidden');
+            }
+        }
+        
+        function clearSelection() {
+            selectedConfigIds.clear();
+            
+            // Remove selected class from all cards
+            document.querySelectorAll('.config-card.selected').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            updateSelectionUI();
+        }
+        
+        function selectAllConfigs() {
+            // Select all visible config cards
+            document.querySelectorAll('.config-card.selectable').forEach(card => {
+                const configId = card.dataset.configId;
+                if (configId) {
+                    selectedConfigIds.add(configId);
+                    card.classList.add('selected');
+                }
+            });
+            
+            updateSelectionUI();
+        }
+        
+        async function submitSelectedConfigs() {
+            const selectedIds = Array.from(selectedConfigIds);
+            
+            if (selectedIds.length === 0) {
+                alert('No configurations selected!');
+                return;
+            }
+            
+            if (!selectedStrategyId) {
+                alert('No strategy run selected!');
+                return;
+            }
+            
+            // Open the execution modal instead of submitting directly
+            openExecutionModal(selectedIds);
+        }
+        
+        // ============================================================================
+        // EXECUTION MODAL FUNCTIONALITY
+        // ============================================================================
+        
+        let executionConfigData = []; // Store config data for the modal
+        
+        function openExecutionModal(selectedIds) {
+            // Get config details from the cards
+            executionConfigData = [];
+            selectedIds.forEach(id => {
+                const card = document.querySelector(`.config-card[data-config-id="${id}"]`);
+                if (card) {
+                    const probEl = card.querySelector('.config-prob');
+                    const detailsEl = card.querySelector('.config-details');
+                    executionConfigData.push({
+                        id: id,
+                        prob: probEl ? probEl.textContent : '-',
+                        details: detailsEl ? detailsEl.textContent.replace(/\s+/g, ' ').trim() : '',
+                        weight_percent: 0
+                    });
+                } else {
+                    executionConfigData.push({
+                        id: id,
+                        prob: '-',
+                        details: '',
+                        weight_percent: 0
+                    });
+                }
+            });
+            
+            // Render the weight config list
+            renderWeightConfigList();
+            
+            // Reset form
+            document.getElementById('simulateMode').checked = true;
+            document.getElementById('totalMoney').value = '';
+            toggleSimulateMode(); // Update the label text
+            
+            // Distribute weights equally by default
+            distributeWeightsEqually();
+            
+            // Show modal
+            document.getElementById('executionModal').classList.add('active');
+        }
+        
+        function closeExecutionModal() {
+            document.getElementById('executionModal').classList.remove('active');
+        }
+        
+        function toggleSimulateMode() {
+            const isSimulate = document.getElementById('simulateMode').checked;
+            const requiredLabel = document.getElementById('totalMoneyRequired');
+            if (requiredLabel) {
+                requiredLabel.textContent = isSimulate ? '(optional for simulation)' : '(required)';
+                requiredLabel.style.color = isSimulate ? '#888' : '#f87171';
+            }
+        }
+        
+        function renderWeightConfigList() {
+            const container = document.getElementById('weightConfigList');
+            
+            container.innerHTML = executionConfigData.map((config, idx) => `
+                <div class="weight-config-item">
+                    <div class="config-info">
+                        <div class="config-name">Config #${config.id} - ${config.prob}</div>
+                        <div class="config-meta">${config.details.substring(0, 60)}...</div>
+                    </div>
+                    <div class="weight-input">
+                        <input type="number" 
+                               id="weight-${idx}" 
+                               value="${config.weight_percent}" 
+                               min="0" 
+                               max="100" 
+                               step="0.1"
+                               onchange="updateWeight(${idx}, this.value)"
+                               oninput="updateWeight(${idx}, this.value)">
+                        <span>%</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            updateTotalWeight();
+        }
+        
+        function updateWeight(index, value) {
+            executionConfigData[index].weight_percent = parseFloat(value) || 0;
+            updateTotalWeight();
+        }
+        
+        function updateTotalWeight() {
+            const total = executionConfigData.reduce((sum, c) => sum + c.weight_percent, 0);
+            const totalEl = document.getElementById('totalWeightValue');
+            totalEl.textContent = total.toFixed(1) + '%';
+            
+            if (Math.abs(total - 100) < 0.1) {
+                totalEl.classList.remove('invalid');
+                totalEl.classList.add('valid');
+            } else {
+                totalEl.classList.remove('valid');
+                totalEl.classList.add('invalid');
+            }
+        }
+        
+        function distributeWeightsEqually() {
+            const count = executionConfigData.length;
+            if (count === 0) return;
+            
+            const equalWeight = parseFloat((100 / count).toFixed(2));
+            const remainder = parseFloat((100 - (equalWeight * count)).toFixed(2));
+            
+            executionConfigData.forEach((config, idx) => {
+                // Add remainder to the first item to make it exactly 100%
+                config.weight_percent = idx === 0 ? equalWeight + remainder : equalWeight;
+            });
+            
+            renderWeightConfigList();
+        }
+        
+        async function confirmExecution() {
+            const simulateMode = document.getElementById('simulateMode').checked;
+            const totalMoney = document.getElementById('totalMoney').value;
+            
+            // Validate total money if not in simulate mode
+            if (!simulateMode && (!totalMoney || parseFloat(totalMoney) <= 0)) {
+                alert('Please enter a valid total investment amount');
+                return;
+            }
+            
+            // Validate weights sum to 100%
+            const totalWeight = executionConfigData.reduce((sum, c) => sum + c.weight_percent, 0);
+            if (Math.abs(totalWeight - 100) > 0.1) {
+                alert(`Weight percentages must sum to 100% (current: ${totalWeight.toFixed(1)}%)`);
+                return;
+            }
+            
+            // Prepare payload
+            const payload = {
+                simulate_mode: simulateMode,
+                total_money: simulateMode ? null : parseFloat(totalMoney),
+                selected_configs: executionConfigData.map(c => ({
+                    id: parseInt(c.id),
+                    weight_percent: c.weight_percent
+                }))
+            };
+            
+            console.log('Executing with payload:', payload);
+            
+            try {
+                const response = await fetch(`/api/runs/${selectedStrategyId}/execute`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    closeExecutionModal();
+                    alert(`✅ Execution request submitted successfully!\n\n` +
+                          `Mode: ${simulateMode ? 'Simulation' : 'Live'}\n` +
+                          `${simulateMode ? '' : 'Amount: ₹' + parseFloat(totalMoney).toLocaleString() + '\n'}` +
+                          `Configurations: ${executionConfigData.length}`);
+                    // Clear selection after successful submission
+                    clearSelection();
+                } else {
+                    alert(`❌ Error: ${result.error || 'Failed to submit execution request'}`);
+                }
+            } catch (error) {
+                console.error('Error submitting execution:', error);
+                alert(`❌ Error: ${error.message}`);
+            }
         }
 
         function toggleRunConfigDetails(index) {
@@ -1739,11 +2311,19 @@
                 closeConfigsModal();
             }
         });
+        
+        // Close execution modal on outside click
+        document.getElementById('executionModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeExecutionModal();
+            }
+        });
 
         // Close modal on Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeConfigsModal();
+                closeExecutionModal();
             }
         });
     </script>

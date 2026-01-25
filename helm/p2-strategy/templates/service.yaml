@@ -1,0 +1,20 @@
+{{- if .Values.frontend.enabled }}
+---
+# P2 Strategy Frontend Service (only frontend needs a service for HTTP access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: p2-strategy-frontend
+  labels:
+    app: p2-strategy-frontend
+    component: frontend
+spec:
+  type: {{ .Values.frontend.service.type }}
+  selector:
+    app: p2-strategy-frontend
+  ports:
+    - protocol: TCP
+      port: {{ .Values.frontend.service.port }}
+      targetPort: 8082
+      name: http
+{{- end }}
