@@ -141,16 +141,17 @@ class OrderService:
     # Polling config
     MAX_WAIT_SECONDS = 30
     POLL_INTERVAL_SECONDS = 0.5
-    
+
     def __init__(self, kite: KiteConnect, price_service: PriceService):
         self.kite = kite
         self.price_service = price_service
-    
+
     def place_buy_order(
         self,
         symbol: str,
         money_quantity: float,
         exchange: str = "NSE",
+        stimulate_mode: bool = False,
     ) -> Dict:
         """
         Place a BUY order using money amount.
@@ -169,6 +170,7 @@ class OrderService:
             symbol=symbol,
             money_quantity=money_quantity,
             exchange=exchange,
+            stimulate_mode=stimulate_mode,
         )
     
     def place_sell_order(
@@ -176,6 +178,7 @@ class OrderService:
         symbol: str,
         share_quantity: int,
         exchange: str = "NSE",
+        stimulate_mode: bool = False,
     ) -> Dict:
         """
         Place a SELL order using share quantity.
@@ -193,6 +196,7 @@ class OrderService:
             symbol=symbol,
             share_quantity=share_quantity,
             exchange=exchange,
+            stimulate_mode=stimulate_mode,
         )
     
     def _wait_for_order_completion(self, order_id: str) -> Dict:
@@ -253,6 +257,7 @@ class OrderService:
         exchange: str,
         share_quantity: Optional[int] = None,
         money_quantity: Optional[float] = None,
+        stimulate_mode: bool = False,
     ) -> Dict:
         """Internal method to place an order"""
         try:
@@ -285,51 +290,71 @@ class OrderService:
                         'error': f"Insufficient funds to buy any shares of {symbol} at ₹{current_price} per share"
                     }
                 actual_amount = shares_to_buy * current_price
-                order_id = self.kite.place_order(
-                    variety="regular",
-                    exchange=exchange,
-                    tradingsymbol=symbol,
-                    transaction_type=self.kite.TRANSACTION_TYPE_BUY,
-                    quantity=shares_to_buy,
-                    order_type=self.kite.ORDER_TYPE_MARKET,
-                    product=self.kite.PRODUCT_CNC
-                )
-                
-                logger.info(f"BUY order placed: {shares_to_buy} shares of {symbol}, Order ID: {order_id}. Waiting for execution...")
-                
-                # Wait for order to complete
-                order_result = self._wait_for_order_completion(order_id)
-                
-                if not order_result['success']:
+
+                if stimulate_mode:
+                    order_id = "stimulate_{}".format(int(time.time()))  
+                    logger.info(f"stimulateD BUY order: {shares_to_buy} shares of {symbol} @ ₹{current_price} = ₹{actual_amount}")
                     return {
-                        'success': False,
+                        'success': True,
                         'order_id': order_id,
-                        'error': f"Order {order_result['status']}: {order_result.get('status_message', '')}",
-                        'status': order_result['status']
+                        'status': 'COMPLETE',
+                        'transaction_type': 'BUY',
+                        'symbol': symbol,
+                        'exchange': exchange,
+                        'shares_bought': shares_to_buy,
+                        'price_per_share': current_price,
+                        'total_amount': actual_amount,
+                        'money_provided': money_quantity,
+                        'money_remaining': money_quantity - actual_amount,
+                        'order_timestamp': str(time.strftime('%Y-%m-%d %H:%M:%S')),
+                        'exchange_timestamp': str(time.strftime('%Y-%m-%d %H:%M:%S'))
                     }
+                else:
+                    order_id = self.kite.place_order(
+                        variety="regular",
+                        exchange=exchange,
+                        tradingsymbol=symbol,
+                        transaction_type=self.kite.TRANSACTION_TYPE_BUY,
+                        quantity=shares_to_buy,
+                        order_type=self.kite.ORDER_TYPE_MARKET,
+                        product=self.kite.PRODUCT_CNC
+                    )
+                    
+                    logger.info(f"BUY order placed: {shares_to_buy} shares of {symbol}, Order ID: {order_id}. Waiting for execution...")
                 
-                # Order completed successfully - use actual execution price
-                executed_price = order_result['average_price'] or current_price
-                executed_quantity = order_result['filled_quantity']
-                actual_amount = executed_quantity * executed_price
+                    # Wait for order to complete
+                    order_result = self._wait_for_order_completion(order_id)
                 
-                logger.info(f"BUY order COMPLETE: {executed_quantity} shares of {symbol} @ ₹{executed_price} = ₹{actual_amount}")
-                
-                return {
-                    'success': True,
-                    'order_id': order_id,
-                    'status': 'COMPLETE',
-                    'transaction_type': 'BUY',
-                    'symbol': symbol,
-                    'exchange': exchange,
-                    'shares_bought': executed_quantity,
-                    'price_per_share': executed_price,
-                    'total_amount': actual_amount,
-                    'money_provided': money_quantity,
-                    'money_remaining': money_quantity - actual_amount,
-                    'order_timestamp': order_result.get('order_timestamp'),
-                    'exchange_timestamp': order_result.get('exchange_timestamp')
-                }
+                    if not order_result['success']:
+                        return {
+                            'success': False,
+                            'order_id': order_id,
+                            'error': f"Order {order_result['status']}: {order_result.get('status_message', '')}",
+                            'status': order_result['status']
+                        }
+                    
+                    # Order completed successfully - use actual execution price
+                    executed_price = order_result['average_price'] or current_price
+                    executed_quantity = order_result['filled_quantity']
+                    actual_amount = executed_quantity * executed_price
+                    
+                    logger.info(f"BUY order COMPLETE: {executed_quantity} shares of {symbol} @ ₹{executed_price} = ₹{actual_amount}")
+                    
+                    return {
+                        'success': True,
+                        'order_id': order_id,
+                        'status': 'COMPLETE',
+                        'transaction_type': 'BUY',
+                        'symbol': symbol,
+                        'exchange': exchange,
+                        'shares_bought': executed_quantity,
+                        'price_per_share': executed_price,
+                        'total_amount': actual_amount,
+                        'money_provided': money_quantity,
+                        'money_remaining': money_quantity - actual_amount,
+                        'order_timestamp': order_result.get('order_timestamp'),
+                        'exchange_timestamp': order_result.get('exchange_timestamp')
+                    }
                 
             elif transaction_type == "SELL":
                 # Use share quantity directly
@@ -341,49 +366,66 @@ class OrderService:
                 
                 expected_amount = share_quantity * current_price
                 
-                order_id = self.kite.place_order(
-                    variety="regular",
-                    exchange=exchange,
-                    tradingsymbol=symbol,
-                    transaction_type=self.kite.TRANSACTION_TYPE_SELL,
-                    quantity=share_quantity,
-                    order_type=self.kite.ORDER_TYPE_MARKET,
-                    product=self.kite.PRODUCT_CNC
-                )
-                
-                logger.info(f"SELL order placed: {share_quantity} shares of {symbol}, Order ID: {order_id}. Waiting for execution...")
-                
-                # Wait for order to complete
-                order_result = self._wait_for_order_completion(order_id)
-                
-                if not order_result['success']:
+                if stimulate_mode:
+                    order_id = "stimulate_{}".format(int(time.time()))  
+                    logger.info(f"stimulateD SELL order: {share_quantity} shares of {symbol} @ ₹{current_price} = ₹{expected_amount}")
                     return {
-                        'success': False,
+                        'success': True,
                         'order_id': order_id,
-                        'error': f"Order {order_result['status']}: {order_result.get('status_message', '')}",
-                        'status': order_result['status']
+                        'status': 'COMPLETE',
+                        'transaction_type': 'SELL',
+                        'symbol': symbol,
+                        'exchange': exchange,
+                        'shares_sold': share_quantity,
+                        'price_per_share': current_price,
+                        'total_amount': expected_amount,
+                        'order_timestamp': str(time.strftime('%Y-%m-%d %H:%M:%S')),
+                        'exchange_timestamp': str(time.strftime('%Y-%m-%d %H:%M:%S'))
                     }
-                
-                # Order completed successfully - use actual execution price
-                executed_price = order_result['average_price'] or current_price
-                executed_quantity = order_result['filled_quantity']
-                actual_amount = executed_quantity * executed_price
-                
-                logger.info(f"SELL order COMPLETE: {executed_quantity} shares of {symbol} @ ₹{executed_price} = ₹{actual_amount}")
-                
-                return {
-                    'success': True,
-                    'order_id': order_id,
-                    'status': 'COMPLETE',
-                    'transaction_type': 'SELL',
-                    'symbol': symbol,
-                    'exchange': exchange,
-                    'shares_sold': executed_quantity,
-                    'price_per_share': executed_price,
-                    'total_amount': actual_amount,
-                    'order_timestamp': order_result.get('order_timestamp'),
-                    'exchange_timestamp': order_result.get('exchange_timestamp')
-                }
+                else:
+                    order_id = self.kite.place_order(
+                        variety="regular",
+                        exchange=exchange,
+                        tradingsymbol=symbol,
+                        transaction_type=self.kite.TRANSACTION_TYPE_SELL,
+                        quantity=share_quantity,
+                        order_type=self.kite.ORDER_TYPE_MARKET,
+                        product=self.kite.PRODUCT_CNC
+                    )
+                    
+                    logger.info(f"SELL order placed: {share_quantity} shares of {symbol}, Order ID: {order_id}. Waiting for execution...")
+                    
+                    # Wait for order to complete
+                    order_result = self._wait_for_order_completion(order_id)
+                    
+                    if not order_result['success']:
+                        return {
+                            'success': False,
+                            'order_id': order_id,
+                            'error': f"Order {order_result['status']}: {order_result.get('status_message', '')}",
+                            'status': order_result['status']
+                        }
+                    
+                    # Order completed successfully - use actual execution price
+                    executed_price = order_result['average_price'] or current_price
+                    executed_quantity = order_result['filled_quantity']
+                    actual_amount = executed_quantity * executed_price
+                    
+                    logger.info(f"SELL order COMPLETE: {executed_quantity} shares of {symbol} @ ₹{executed_price} = ₹{actual_amount}")
+                    
+                    return {
+                        'success': True,
+                        'order_id': order_id,
+                        'status': 'COMPLETE',
+                        'transaction_type': 'SELL',
+                        'symbol': symbol,
+                        'exchange': exchange,
+                        'shares_sold': executed_quantity,
+                        'price_per_share': executed_price,
+                        'total_amount': actual_amount,
+                        'order_timestamp': order_result.get('order_timestamp'),
+                        'exchange_timestamp': order_result.get('exchange_timestamp')
+                    }
             
             else:
                 return {
@@ -806,11 +848,13 @@ class PriceAndOrderHandler:
         symbol: str,
         money_quantity: float,
         exchange: str = "NSE",
+        stimulate_mode: bool = False,
     ) -> Dict:
         return self.order_service.place_buy_order(
             symbol=symbol,
             money_quantity=money_quantity,
             exchange=exchange,
+            stimulate_mode=stimulate_mode,
         )
     
     def sell(
@@ -818,11 +862,13 @@ class PriceAndOrderHandler:
         symbol: str,
         share_quantity: int,
         exchange: str = "NSE",
+        stimulate_mode: bool = False,
     ) -> Dict:
         return self.order_service.place_sell_order(
             symbol=symbol,
             share_quantity=share_quantity,
-            exchange=exchange
+            exchange=exchange,
+            stimulate_mode=stimulate_mode,
         )
     
     def get_order_status(self, order_id: str) -> Dict:

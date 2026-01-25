@@ -280,7 +280,8 @@ def place_buy_order():
         symbol = data.get('symbol')
         money = data.get('money')
         exchange = data.get('exchange', 'NSE')
-        
+        stimulate_mode = data.get('stimulate_mode', False)
+
         if not symbol:
             return jsonify({'success': False, 'error': 'symbol is required'}), 400
         if not money or money <= 0:
@@ -291,7 +292,8 @@ def place_buy_order():
         result = order_handler.buy(
             symbol=symbol,
             money_quantity=float(money),
-            exchange=exchange
+            exchange=exchange,
+            stimulate_mode=stimulate_mode
         )
         
         if result['success']:
@@ -331,6 +333,7 @@ def place_sell_order():
         symbol = data.get('symbol')
         quantity = data.get('quantity')
         exchange = data.get('exchange', 'NSE')
+        stimulate_mode = data.get('stimulate_mode', False)
         
         if not symbol:
             return jsonify({'success': False, 'error': 'symbol is required'}), 400
@@ -342,7 +345,8 @@ def place_sell_order():
         result = order_handler.sell(
             symbol=symbol,
             share_quantity=float(quantity),
-            exchange=exchange
+            exchange=exchange,
+            stimulate_mode=stimulate_mode
         )
         
         if result['success']:

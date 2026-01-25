@@ -432,21 +432,21 @@ class DBClient:
                 }
             }
     
-    def create_strategy_execution(self, strategy_id, simulate_mode=True, total_money=None, selected_configs=None):
+    def create_strategy_execution(self, strategy_id, stimulate_mode=True, total_money=None, selected_configs=None):
         """
         Create a new strategy execution record.
         
         Args:
             strategy_id: The strategy run ID
-            simulate_mode: Whether to run in simulation mode (default: True)
-            total_money: Total money to invest (required if not simulate_mode)
+            stimulate_mode: Whether to run in simulation mode (default: True)
+            total_money: Total money to invest (required if not stimulate_mode)
             selected_configs: List of dicts with 'id' and 'weight_percent' keys
         
         Returns:
             Dict with execution details
         """
         query = """
-        INSERT INTO strategy_executions (strategy_id, status, simulate_mode, total_money, created_at)
+        INSERT INTO strategy_executions (strategy_id, status, stimulate_mode, total_money, created_at)
         VALUES (%s, %s, %s, %s, %s)
         """
         query_2 = """
@@ -456,7 +456,7 @@ class DBClient:
 
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(query, (strategy_id, 'queued', simulate_mode, total_money, datetime.now()))
+            cursor.execute(query, (strategy_id, 'queued', stimulate_mode, total_money, datetime.now()))
             execution_id = cursor.lastrowid
             if selected_configs:
                 detail_rows = [(execution_id, cfg['id'], cfg.get('weight_percent', 0)) for cfg in selected_configs]
@@ -466,7 +466,7 @@ class DBClient:
             return {
                 'execution_id': execution_id,
                 'strategy_id': strategy_id,
-                'simulate_mode': simulate_mode,
+                'stimulate_mode': stimulate_mode,
                 'total_money': total_money,
                 'status': 'queued',
                 'configs_count': len(selected_configs) if selected_configs else 0,
@@ -484,7 +484,7 @@ class DBClient:
             Dict with execution data or None if not found
         """
         query = """
-        SELECT id, strategy_id, status, simulate_mode, total_money, 
+        SELECT id, strategy_id, status, stimulate_mode, total_money, 
                created_at, started_at, completed_at, error_message
         FROM strategy_executions 
         WHERE id = %s
@@ -573,7 +573,7 @@ class DBClient:
                 - current_shares: Current number of shares held
                 - price_during_order: Price at which order was placed (nullable)
                 - order_type: 'buy' or 'sell'
-                - simulate_mode: Whether in simulation mode
+                - stimulate_mode: Whether in simulation mode
                 - x: X point from strategy
                 - y: Y point from strategy
                 - stock: Stock symbol
@@ -588,7 +588,7 @@ class DBClient:
         INSERT INTO strategy_execution_tasks (
             execution_detail_id, timestamp_of_execution, day_of_execution,
             current_money, current_shares, price_during_order, order_type,
-            simulate_mode, x, y, stock, exchange, days_remaining, 
+            stimulate_mode, x, y, stock, exchange, days_remaining, 
             previous_task_id, status, created_at
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -603,7 +603,7 @@ class DBClient:
                 task.get('current_shares', 0),
                 task.get('price_during_order'),
                 task.get('order_type', 'buy'),
-                task.get('simulate_mode', True),
+                task.get('stimulate_mode', True),
                 task.get('x'),
                 task.get('y'),
                 task.get('stock'),
@@ -650,7 +650,7 @@ class DBClient:
             Dict with 'runs' list of execution run records
         """
         query = """
-        SELECT id, strategy_id, status, simulate_mode, total_money, created_at
+        SELECT id, strategy_id, status, stimulate_mode, total_money, created_at
         FROM strategy_executions
         """
         params = []

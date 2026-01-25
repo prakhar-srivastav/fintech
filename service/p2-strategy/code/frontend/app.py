@@ -263,8 +263,8 @@ def execute_strategy_run(strategy_id):
     
     Expected payload:
     {
-        "simulate_mode": true/false,
-        "total_money": 100000 (required if simulate_mode is false),
+        "stimulate_mode": true/false,
+        "total_money": 100000 (required if stimulate_mode is false),
         "selected_configs": [
             {"id": 123, "weight_percent": 25.5},
             {"id": 456, "weight_percent": 74.5}
@@ -273,15 +273,15 @@ def execute_strategy_run(strategy_id):
     """
     try:
         data = request.json
-        simulate_mode = data.get('simulate_mode', True)
+        stimulate_mode = data.get('stimulate_mode', True)
         total_money = data.get('total_money', None)
         selected_configs = data.get('selected_configs', [])
         
-        # Validate: if not simulate mode, total_money is required
-        if not simulate_mode and not total_money:
+        # Validate: if not stimulate mode, total_money is required
+        if not stimulate_mode and not total_money:
             return jsonify({
                 'status': 'failure',
-                'error': 'Total money is required when not in simulate mode'
+                'error': 'Total money is required when not in stimulate mode'
             }), 400
         
         # Validate: weight percentages should sum to ~100%
@@ -295,7 +295,7 @@ def execute_strategy_run(strategy_id):
         
         result = db_client.create_strategy_execution(
             strategy_id, 
-            simulate_mode=simulate_mode,
+            stimulate_mode=stimulate_mode,
             total_money=total_money,
             selected_configs=selected_configs
         )

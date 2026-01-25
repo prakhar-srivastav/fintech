@@ -18,6 +18,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 from db_client import DBClient
+from datetime import datetime, timedelta
 
 # Database configuration
 DB_CONFIG = {
@@ -34,19 +35,34 @@ db_client = DBClient(DB_CONFIG)
 # Polling interval in seconds
 POLL_INTERVAL = int(os.environ.get('POLL_INTERVAL', '60'))
 
+def convert_to_second(timestamp_str):
+    # "10:27" -> 10*3600 + 27*60
+    parts = timestamp_str.split(':')
+    if len(parts) != 2:
+        raise ValueError(f"Invalid timestamp format: {timestamp_str}")
+    hours = int(parts[0])
+    minutes = int(parts[1])
+    return hours * 3600 + minutes * 60
 
 def create_initial_task(strategy_result):
+    tomorrow = datetime.now() + timedelta(days=1)
+    day_of_execution = tomorrow.strftime('%Y-%m-%d')
+    
+    # Convert Decimal to float for calculation
+    total_money = float(strategy_result['total_money'] or 0)
+    weight_percent = float(strategy_result['weight_percent'] or 0)
+    
     task = {
         'execution_detail_id': strategy_result['execution_detail_id'],
-        'timestamp_of_execution': strategy_result['x'],
-        'day_of_execution': 0,
-        'current_money': int(strategy_result['total_money'] * strategy_result['weight_percent'] / 100),
+        'timestamp_of_execution': convert_to_second(strategy_result['x']),
+        'day_of_execution': day_of_execution,
+        'current_money': int(total_money * weight_percent / 100),
         'current_shares': 0,
         'price_during_order': None,
         'order_type': 'buy',
-        'simulate_mode': strategy_result['simulate_mode'],
-        'x': strategy_result['x'],
-        'y': strategy_result['y'],
+        'stimulate_mode': strategy_result['stimulate_mode'],
+        'x': convert_to_second(strategy_result['x']),
+        'y': convert_to_second(strategy_result['y']),
         'stock': strategy_result['stock'],
         'exchange': strategy_result['exchange'],
         'days_remaining': strategy_result.get('continuous_days', 0),
@@ -67,7 +83,7 @@ def process_strategy_execution_job(execution_id):
         return
 
     strategy_id = execution_details['strategy_id']
-    simulate_mode = execution_details['simulate_mode']
+    stimulate_mode = execution_details['stimulate_mode']
     total_money = execution_details['total_money'] if execution_details['total_money'] else 0
     
     strategy_result_details = db_client.get_strategy_execution_details(execution_id)
@@ -84,7 +100,7 @@ def process_strategy_execution_job(execution_id):
                 'execution_detail_id': execution_detail_id,
                 'strategy_result_id': strategy_result_id,
                 'weight_percent': current['weight_percent'],
-                'simulate_mode': simulate_mode,
+                'stimulate_mode': stimulate_mode,
                 'total_money': total_money,
                 'stock': current['stock'],
                 'exchange': current['exchange'],

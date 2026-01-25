@@ -856,7 +856,7 @@
             outline: none;
             border-color: #667eea;
         }
-        .simulate-toggle {
+        .stimulate-toggle {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -865,16 +865,16 @@
             border-radius: 10px;
             cursor: pointer;
         }
-        .simulate-toggle input[type="checkbox"] {
+        .stimulate-toggle input[type="checkbox"] {
             width: 20px;
             height: 20px;
             cursor: pointer;
         }
-        .simulate-toggle .toggle-label {
+        .stimulate-toggle .toggle-label {
             color: #fff;
             font-weight: 600;
         }
-        .simulate-toggle .toggle-desc {
+        .stimulate-toggle .toggle-desc {
             color: #888;
             font-size: 0.85rem;
         }
@@ -1263,12 +1263,12 @@
                     <button class="modal-close" onclick="closeExecutionModal()">×</button>
                 </div>
                 
-                <!-- Simulate Mode Toggle -->
+                <!-- stimulate Mode Toggle -->
                 <div class="execution-form-group">
-                    <label class="simulate-toggle">
-                        <input type="checkbox" id="simulateMode" checked onchange="toggleSimulateMode()">
+                    <label class="stimulate-toggle">
+                        <input type="checkbox" id="stimulateMode" checked onchange="togglestimulateMode()">
                         <div>
-                            <div class="toggle-label">Simulate Mode</div>
+                            <div class="toggle-label">stimulate Mode</div>
                             <div class="toggle-desc">Run in simulation without real money</div>
                         </div>
                     </label>
@@ -2154,9 +2154,9 @@
             renderWeightConfigList();
             
             // Reset form
-            document.getElementById('simulateMode').checked = true;
+            document.getElementById('stimulateMode').checked = true;
             document.getElementById('totalMoney').value = '';
-            toggleSimulateMode(); // Update the label text
+            togglestimulateMode(); // Update the label text
             
             // Distribute weights equally by default
             distributeWeightsEqually();
@@ -2169,12 +2169,12 @@
             document.getElementById('executionModal').classList.remove('active');
         }
         
-        function toggleSimulateMode() {
-            const isSimulate = document.getElementById('simulateMode').checked;
+        function togglestimulateMode() {
+            const isstimulate = document.getElementById('stimulateMode').checked;
             const requiredLabel = document.getElementById('totalMoneyRequired');
             if (requiredLabel) {
-                requiredLabel.textContent = isSimulate ? '(optional for simulation)' : '(required)';
-                requiredLabel.style.color = isSimulate ? '#888' : '#f87171';
+                requiredLabel.textContent = isstimulate ? '(optional for simulation)' : '(required)';
+                requiredLabel.style.color = isstimulate ? '#888' : '#f87171';
             }
         }
         
@@ -2239,11 +2239,11 @@
         }
         
         async function confirmExecution() {
-            const simulateMode = document.getElementById('simulateMode').checked;
+            const stimulateMode = document.getElementById('stimulateMode').checked;
             const totalMoney = document.getElementById('totalMoney').value;
             
-            // Validate total money if not in simulate mode
-            if (!simulateMode && (!totalMoney || parseFloat(totalMoney) <= 0)) {
+            // Validate total money if not in stimulate mode
+            if (!stimulateMode && (!totalMoney || parseFloat(totalMoney) <= 0)) {
                 alert('Please enter a valid total investment amount');
                 return;
             }
@@ -2257,8 +2257,8 @@
             
             // Prepare payload
             const payload = {
-                simulate_mode: simulateMode,
-                total_money: simulateMode ? null : parseFloat(totalMoney),
+                stimulate_mode: stimulateMode,
+                total_money: stimulateMode ? null : parseFloat(totalMoney),
                 selected_configs: executionConfigData.map(c => ({
                     id: parseInt(c.id),
                     weight_percent: c.weight_percent
@@ -2279,8 +2279,8 @@
                 if (result.status === 'success') {
                     closeExecutionModal();
                     alert(`✅ Execution request submitted successfully!\n\n` +
-                          `Mode: ${simulateMode ? 'Simulation' : 'Live'}\n` +
-                          `${simulateMode ? '' : 'Amount: ₹' + parseFloat(totalMoney).toLocaleString() + '\n'}` +
+                          `Mode: ${stimulateMode ? 'Simulation' : 'Live'}\n` +
+                          `${stimulateMode ? '' : 'Amount: ₹' + parseFloat(totalMoney).toLocaleString() + '\n'}` +
                           `Configurations: ${executionConfigData.length}`);
                     // Clear selection after successful submission
                     clearSelection();

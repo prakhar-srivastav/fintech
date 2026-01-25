@@ -116,7 +116,7 @@ CREATE TABLE strategy_executions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     strategy_id INT NOT NULL,
     status VARCHAR(20) DEFAULT 'queued',
-    simulate_mode BOOLEAN DEFAULT TRUE,
+    stimulate_mode BOOLEAN DEFAULT TRUE,
     total_money DECIMAL(15,2) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     started_at TIMESTAMP NULL,
@@ -139,6 +139,7 @@ CREATE TABLE strategy_execution_details (
     execution_id INT NOT NULL,
     strategy_result_id INT NOT NULL,
     weight_percent DECIMAL(5,2) DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'queued',
     
     -- Foreign keys
     CONSTRAINT fk_execution_details_execution FOREIGN KEY (execution_id) 
@@ -158,15 +159,15 @@ CREATE TABLE strategy_execution_details (
 CREATE TABLE strategy_execution_tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     execution_detail_id INT NOT NULL,
-    timestamp_of_execution VARCHAR(50),
-    day_of_execution INT DEFAULT 0,
+    timestamp_of_execution INT(50),
+    day_of_execution VARCHAR(50),
     current_money DECIMAL(15,2),
     current_shares INT DEFAULT 0,
     price_during_order DECIMAL(12,4) NULL,
     order_type VARCHAR(10) DEFAULT 'buy',
-    simulate_mode BOOLEAN DEFAULT TRUE,
-    x VARCHAR(50),
-    y VARCHAR(50),
+    stimulate_mode BOOLEAN DEFAULT TRUE,
+    x INT(50),
+    y INT(50),
     stock VARCHAR(50),
     exchange VARCHAR(50),
     days_remaining INT DEFAULT 0,
@@ -185,5 +186,32 @@ CREATE TABLE strategy_execution_tasks (
     INDEX idx_execution_tasks_status (status),
     INDEX idx_execution_tasks_created_at (created_at),
     INDEX idx_execution_tasks_stock (stock),
-    INDEX idx_execution_tasks_order_type (order_type)
+    INDEX idx_execution_tasks_order_type (order_type),
+    INDEX idx_execution_tasks_timestamp (timestamp_of_execution)
+);
+
+-- Table to store task execution output/results
+CREATE TABLE strategy_execution_tasks_output (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    task_id INT NOT NULL,
+    order_id VARCHAR(100),
+    shares_bought INT DEFAULT 0,
+    price_per_share DECIMAL(12,4),
+    total_amount DECIMAL(15,2),
+    money_provided DECIMAL(15,2),
+    money_remaining DECIMAL(15,2),
+    order_timestamp TIMESTAMP NULL,
+    exchange_timestamp TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Foreign key to strategy_execution_tasks
+    CONSTRAINT fk_tasks_output_task FOREIGN KEY (task_id) 
+        REFERENCES strategy_execution_tasks(id) ON DELETE CASCADE,
+    
+    -- Indexes
+    INDEX idx_tasks_output_task_id (task_id),
+    INDEX idx_tasks_output_order_id (order_id),
+    
+    -- One output per task
+    UNIQUE KEY uq_tasks_output_task (task_id)
 );
