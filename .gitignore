@@ -1,5 +1,6 @@
-# Created by venv; see https://docs.python.org/3/library/venv.html
 fintech/
 values/**/values.yaml
 values/values.properties
 service/data-ingester/code/data-ingester/
+service/broker-middleware/broker-middleware/
+service/broker-middleware/code/broker-middleware/

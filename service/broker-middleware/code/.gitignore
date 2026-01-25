@@ -1,4 +1,5 @@
-../broker-middleware
+# Ignore the broker-middleware venv/folder at parent level
+/broker-middleware/
 test/values.json
 data/
 test/data/
