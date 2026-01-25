@@ -114,8 +114,6 @@ def fetch_data():
                 end_date=end_date,
                 exchanges=exchanges if exchanges else None
             )
-            logger.info(f"Fetched data for stocks: {stocks}")
-            logger.info(f"Data fetch result: {result}")
             return jsonify(result)
         except Exception as e:
             logger.error(f"Error during fetch: {e}")

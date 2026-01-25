@@ -37,7 +37,6 @@ def convert_to_mysql_datetime(date_str):
             parsed_date = parsed_date.replace(tzinfo=UTC)
             ist_date = parsed_date.astimezone(IST)
             record_time = ist_date.strftime('%Y-%m-%d %H:%M:%S')
-            logger.info(f"Converted GMT '{date_str}' to IST '{record_time}'")
             return record_time
     except (ValueError, TypeError) as e:
         logger.debug(f"GMT parsing failed: {e}")
@@ -48,7 +47,6 @@ def convert_to_mysql_datetime(date_str):
             parsed_date = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
             ist_date = parsed_date.astimezone(IST)
             record_time = ist_date.strftime('%Y-%m-%d %H:%M:%S')
-            logger.info(f"Converted UTC ISO '{date_str}' to IST '{record_time}'")
             return record_time
     except (ValueError, TypeError) as e:
         logger.debug(f"ISO Z parsing failed: {e}")
@@ -63,7 +61,6 @@ def convert_to_mysql_datetime(date_str):
             else:
                 # No timezone, assume already IST
                 record_time = parsed_date.strftime('%Y-%m-%d %H:%M:%S')
-            logger.info(f"Converted ISO '{date_str}' to '{record_time}'")
             return record_time
     except (ValueError, TypeError) as e:
         logger.debug(f"ISO parsing failed: {e}")
@@ -77,7 +74,6 @@ def convert_to_mysql_datetime(date_str):
             else:
                 # No timezone, assume already IST
                 record_time = date_str.strftime('%Y-%m-%d %H:%M:%S')
-            logger.info(f"Converted datetime '{date_str}' to '{record_time}'")
             return record_time
     except (ValueError, TypeError) as e:
         logger.debug(f"Datetime object parsing failed: {e}")
