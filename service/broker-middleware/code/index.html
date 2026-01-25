@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Kite Stock Data Fetcher</title>
+    <title>Kite Stock Data Fetcher & Trading</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -11,7 +11,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             background: white;
             border-radius: 10px;
@@ -28,6 +28,39 @@
             color: #666;
             margin-bottom: 30px;
         }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #ddd;
+        }
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tab:hover {
+            color: #667eea;
+        }
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
         .status {
             padding: 15px;
             border-radius: 5px;
@@ -36,6 +69,9 @@
         }
         .status.success { background: #d4edda; color: #155724; }
         .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #cce5ff; color: #004085; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        
         .form-group {
             margin-bottom: 20px;
         }
@@ -68,8 +104,7 @@
             margin-top: 5px;
         }
         button {
-            width: 100%;
-            padding: 15px;
+            padding: 15px 30px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
@@ -87,6 +122,19 @@
             cursor: not-allowed;
             transform: none;
         }
+        .btn-full {
+            width: 100%;
+        }
+        .btn-buy {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        .btn-sell {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+        
         .response {
             margin-top: 20px;
             padding: 15px;
@@ -112,70 +160,394 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        /* Price Display */
+        .price-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .price-symbol {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .price-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        .price-details {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .price-detail {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .price-detail-label {
+            font-size: 12px;
+            color: #666;
+        }
+        .price-detail-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        /* Order Result */
+        .order-result {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 2px solid #28a745;
+        }
+        .order-result.failed {
+            border-color: #dc3545;
+        }
+        .order-result h3 {
+            margin-bottom: 15px;
+        }
+        .order-detail {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .order-detail:last-child {
+            border-bottom: none;
+        }
+        
+        /* Two column layout */
+        .row {
+            display: flex;
+            gap: 20px;
+        }
+        .col {
+            flex: 1;
+        }
+        
+        /* Section divider */
+        .section-divider {
+            margin: 30px 0;
+            border-top: 2px solid #eee;
+            position: relative;
+        }
+        .section-divider span {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 0 15px;
+            color: #666;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📊 Kite Stock Data Fetcher</h1>
-        <p class="subtitle">Fetch historical stock data from Kite Connect API</p>
+        <h1>📊 Kite Stock Trading Platform</h1>
+        <p class="subtitle">Fetch data, check prices, and place orders</p>
         
-        <div id="status" class="status success" style="display:none;"></div>
+        <div id="connectionStatus" class="status success" style="display:none;"></div>
         
-        <form id="fetchForm">
-            <div class="form-group">
-                <label>Stock Symbols</label>
-                <textarea name="stocks" placeholder="RELIANCE,TCS,INFY,HDFCBANK,ICICIBANK&#10;(Leave empty to fetch all stocks)"></textarea>
-                <div class="hint">Enter comma-separated stock symbols. Leave empty to fetch all stocks.</div>
-            </div>
-            
-            <div class="form-group">
-                <label>Start Date</label>
-                <input type="date" name="start_date" value="2025-01-01">
-                <div class="hint">Leave empty for default: 2025-01-01</div>
-            </div>
-            
-            <div class="form-group">
-                <label>End Date</label>
-                <input type="date" name="end_date">
-                <div class="hint">Leave empty for today</div>
-            </div>
-            
-            <div class="form-group">
-                <label>Exchanges</label>
-                <select name="exchanges" id="exchangesSelect" multiple size="6">
-                    <option value="">Loading exchanges...</option>
-                </select>
-                <div class="hint">Hold Ctrl/Cmd to select multiple exchanges</div>
-            </div>
-            
-            <div class="form-group">
-                <label>Granularity</label>
-                <select name="granularity" id="granularitySelect">
-                    <option value="">Loading granularities...</option>
-                </select>
-            </div>
-            
-            <button type="submit" id="submitBtn">🚀 Fetch Data</button>
-        </form>
-        
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p style="margin-top: 10px;">Fetching data... This may take a while.</p>
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="data">📈 Historical Data</button>
+            <button class="tab" data-tab="price">💰 Live Price</button>
+            <button class="tab" data-tab="order">🛒 Place Order</button>
+            <button class="tab" data-tab="gtt">🎯 GTT Orders</button>
         </div>
         
-        <div id="response" class="response" style="display:none;"></div>
+        <!-- Historical Data Tab -->
+        <div id="data-tab" class="tab-content active">
+            <form id="fetchForm">
+                <div class="form-group">
+                    <label>Stock Symbols</label>
+                    <textarea name="stocks" placeholder="RELIANCE,TCS,INFY,HDFCBANK,ICICIBANK&#10;(Leave empty to fetch all stocks)"></textarea>
+                    <div class="hint">Enter comma-separated stock symbols. Leave empty to fetch all stocks.</div>
+                </div>
+                
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label>Start Date</label>
+                            <input type="date" name="start_date" value="2025-01-01">
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label>End Date</label>
+                            <input type="date" name="end_date">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label>Exchanges</label>
+                            <select name="exchanges" id="exchangesSelect" multiple size="4">
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label>Granularity</label>
+                            <select name="granularity" id="granularitySelect">
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" id="submitBtn" class="btn-full">🚀 Fetch Data</button>
+            </form>
+            
+            <div class="loading" id="dataLoading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px;">Fetching data... This may take a while.</p>
+            </div>
+            
+            <div id="dataResponse" class="response" style="display:none;"></div>
+        </div>
+        
+        <!-- Live Price Tab -->
+        <div id="price-tab" class="tab-content">
+            <form id="priceForm">
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label>Stock Symbol</label>
+                            <input type="text" name="symbol" id="priceSymbol" placeholder="RELIANCE" required>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label>Exchange</label>
+                            <select name="exchange" id="priceExchange">
+                                <option value="NSE">NSE</option>
+                                <option value="BSE">BSE</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-full btn-secondary">🔍 Get Live Price</button>
+            </form>
+            
+            <div class="loading" id="priceLoading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px;">Fetching price...</p>
+            </div>
+            
+            <div id="priceResult" style="display:none;"></div>
+        </div>
+        
+        <!-- Place Order Tab -->
+        <div id="order-tab" class="tab-content">
+            <div id="orderStatus" class="status info" style="display:none;"></div>
+            
+            <div class="row">
+                <div class="col">
+                    <div class="form-group">
+                        <label>Stock Symbol</label>
+                        <input type="text" id="orderSymbol" placeholder="RELIANCE" required>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="form-group">
+                        <label>Exchange</label>
+                        <select id="orderExchange">
+                            <option value="NSE">NSE</option>
+                            <option value="BSE">BSE</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <button type="button" id="checkPriceBtn" class="btn-full btn-secondary">💰 Check Current Price</button>
+            </div>
+            
+            <div id="orderPriceDisplay" class="price-card" style="display:none;">
+                <div class="price-symbol" id="orderPriceSymbol">-</div>
+                <div class="price-value">₹<span id="orderCurrentPrice">0.00</span></div>
+            </div>
+            
+            <div class="section-divider"><span>Place Order</span></div>
+            
+            <!-- Buy Section -->
+            <div style="background: #f8fff8; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <h3 style="color: #28a745; margin-bottom: 15px;">🟢 Buy Order</h3>
+                <div class="form-group">
+                    <label>Amount to Invest (₹)</label>
+                    <input type="number" id="buyAmount" placeholder="50000" min="1" step="0.01">
+                    <div class="hint">Enter the amount you want to invest. Shares will be calculated automatically.</div>
+                </div>
+                <div id="buyEstimate" class="hint" style="font-size: 14px; color: #28a745; margin-bottom: 10px;"></div>
+                <button type="button" id="buyBtn" class="btn-full btn-buy">🛒 Place Buy Order</button>
+            </div>
+            
+            <!-- Sell Section -->
+            <div style="background: #fff8f8; padding: 20px; border-radius: 10px;">
+                <h3 style="color: #dc3545; margin-bottom: 15px;">🔴 Sell Order</h3>
+                <div class="form-group">
+                    <label>Number of Shares</label>
+                    <input type="number" id="sellQuantity" placeholder="10" min="1" step="1">
+                    <div class="hint">Enter the number of shares you want to sell.</div>
+                </div>
+                <div id="sellEstimate" class="hint" style="font-size: 14px; color: #dc3545; margin-bottom: 10px;"></div>
+                <button type="button" id="sellBtn" class="btn-full btn-sell">💸 Place Sell Order</button>
+            </div>
+            
+            <div class="loading" id="orderLoading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px;">Processing order... Waiting for execution...</p>
+            </div>
+            
+            <div id="orderResult" style="display:none;"></div>
+        </div>
+        
+        <!-- GTT Orders Tab -->
+        <div id="gtt-tab" class="tab-content">
+            <div id="gttStatus" class="status info" style="display:none;"></div>
+            
+            <!-- Info Box -->
+            <div style="background: #e7f3ff; border-radius: 10px; padding: 20px; margin-bottom: 25px; border-left: 4px solid #2196F3;">
+                <h3 style="color: #1565C0; margin-bottom: 10px;">🎯 What is OCO GTT?</h3>
+                <p style="margin-bottom: 10px; color: #333;">
+                    <strong>OCO (One Cancels Other)</strong> GTT lets you set both a <strong>target</strong> and <strong>stop-loss</strong> after buying shares:
+                </p>
+                <ul style="margin-left: 20px; color: #555;">
+                    <li><strong>Target Price:</strong> Sell when price goes UP to lock in profit</li>
+                    <li><strong>Stop-Loss Price:</strong> Sell when price goes DOWN to limit loss</li>
+                </ul>
+                <p style="margin-top: 10px; color: #666; font-size: 14px;">
+                    ⚡ Whichever price is hit first, that order executes and the other is automatically cancelled.
+                </p>
+            </div>
+            
+            <!-- OCO GTT Form -->
+            <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; margin-bottom: 25px;">
+                <h3 style="color: #333; margin-bottom: 20px;">📊 Place OCO GTT Order</h3>
+                
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label>Stock Symbol</label>
+                            <input type="text" id="gttSymbol" placeholder="RELIANCE" required>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label>Exchange</label>
+                            <select id="gttExchange">
+                                <option value="NSE">NSE</option>
+                                <option value="BSE">BSE</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label>Quantity (shares)</label>
+                            <input type="number" id="gttQuantity" placeholder="10" min="1" step="1" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <button type="button" id="gttCheckPriceBtn" class="btn-full btn-secondary">💰 Check Current Price</button>
+                </div>
+                
+                <div id="gttPriceDisplay" class="price-card" style="display:none; margin-bottom: 20px;">
+                    <div class="price-symbol" id="gttPriceSymbol">-</div>
+                    <div class="price-value">₹<span id="gttCurrentPrice">0.00</span></div>
+                </div>
+                
+                <div class="row">
+                    <div class="col">
+                        <!-- Target (Profit) -->
+                        <div style="background: #d4edda; padding: 15px; border-radius: 8px;">
+                            <h4 style="color: #28a745; margin-bottom: 10px;">🟢 Target (Take Profit)</h4>
+                            <div class="form-group">
+                                <label>Trigger Price (₹)</label>
+                                <input type="number" id="gttTargetPrice" placeholder="2700" min="0.01" step="0.05">
+                                <div class="hint">Sell when price reaches this level</div>
+                            </div>
+                            <div id="gttTargetEstimate" style="color: #28a745; font-weight: 600; font-size: 14px;"></div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <!-- Stop-Loss -->
+                        <div style="background: #f8d7da; padding: 15px; border-radius: 8px;">
+                            <h4 style="color: #dc3545; margin-bottom: 10px;">🔴 Stop-Loss (Limit Loss)</h4>
+                            <div class="form-group">
+                                <label>Trigger Price (₹)</label>
+                                <input type="number" id="gttStoplossPrice" placeholder="2400" min="0.01" step="0.05">
+                                <div class="hint">Sell to limit loss if price drops</div>
+                            </div>
+                            <div id="gttStoplossEstimate" style="color: #dc3545; font-weight: 600; font-size: 14px;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button type="button" id="placeOcoGttBtn" class="btn-full" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        🎯 Place OCO GTT Order
+                    </button>
+                </div>
+            </div>
+            
+            <div class="loading" id="gttLoading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px;">Processing GTT order...</p>
+            </div>
+            
+            <div id="gttResult" style="display:none;"></div>
+            
+            <!-- Active GTT Orders -->
+            <div class="section-divider"><span>Your GTT Orders</span></div>
+            
+            <div style="margin-bottom: 15px;">
+                <button type="button" id="refreshGttBtn" class="btn-secondary" style="padding: 10px 20px;">
+                    🔄 Refresh GTT Orders
+                </button>
+            </div>
+            
+            <div id="gttOrdersList" style="display:none;">
+                <div id="gttOrdersContent"></div>
+            </div>
+            <div id="gttOrdersLoading" class="loading" style="display:none;">
+                <div class="spinner"></div>
+            </div>
+            <div id="gttOrdersEmpty" class="status info" style="display:none;">
+                No active GTT orders found.
+            </div>
+        </div>
     </div>
     
     <script>
-        const form = document.getElementById('fetchForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const loading = document.getElementById('loading');
-        const response = document.getElementById('response');
-        const status = document.getElementById('status');
-        const exchangesSelect = document.getElementById('exchangesSelect');
-        const granularitySelect = document.getElementById('granularitySelect');
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
+            });
+        });
 
-        // Exchange display names mapping
+        // Exchange and granularity names
         const exchangeNames = {
             'NSE': 'NSE (National Stock Exchange)',
             'BSE': 'BSE (Bombay Stock Exchange)',
@@ -184,75 +556,79 @@
             'BCD': 'BCD (BSE Currency)',
             'MCX': 'MCX (Multi Commodity)'
         };
-
-        // Granularity display names mapping
         const granularityNames = {
-            'minute': '1 Minute',
-            '3minute': '3 Minutes',
-            '5minute': '5 Minutes',
-            '15minute': '15 Minutes',
-            '30minute': '30 Minutes',
-            '60minute': '60 Minutes',
-            'day': 'Day'
+            'minute': '1 Minute', '3minute': '3 Minutes', '5minute': '5 Minutes',
+            '15minute': '15 Minutes', '30minute': '30 Minutes', '60minute': '60 Minutes', 'day': 'Day'
         };
 
-        // Fetch and populate exchanges
+        // Load exchanges
         async function loadExchanges() {
             try {
                 const res = await fetch('/api/exchanges');
                 const data = await res.json();
-                exchangesSelect.innerHTML = '';
-                data.exchanges.forEach((exchange, index) => {
+                const select = document.getElementById('exchangesSelect');
+                select.innerHTML = '';
+                data.exchanges.forEach(exchange => {
                     const option = document.createElement('option');
                     option.value = exchange;
                     option.textContent = exchangeNames[exchange] || exchange;
-                    // Select NSE and BSE by default
-                    if (exchange === 'NSE' || exchange === 'BSE') {
-                        option.selected = true;
-                    }
-                    exchangesSelect.appendChild(option);
+                    if (exchange === 'NSE' || exchange === 'BSE') option.selected = true;
+                    select.appendChild(option);
                 });
             } catch (error) {
                 console.error('Error loading exchanges:', error);
-                exchangesSelect.innerHTML = '<option value="">Error loading exchanges</option>';
             }
         }
 
-        // Fetch and populate granularities
+        // Load granularities
         async function loadGranularities() {
             try {
                 const res = await fetch('/api/granularities');
                 const data = await res.json();
-                granularitySelect.innerHTML = '';
-                data.granularities.forEach(granularity => {
+                const select = document.getElementById('granularitySelect');
+                select.innerHTML = '';
+                data.granularities.forEach(g => {
                     const option = document.createElement('option');
-                    option.value = granularity;
-                    option.textContent = granularityNames[granularity] || granularity;
-                    // Select 5minute by default
-                    if (granularity === '5minute') {
-                        option.selected = true;
-                    }
-                    granularitySelect.appendChild(option);
+                    option.value = g;
+                    option.textContent = granularityNames[g] || g;
+                    if (g === '5minute') option.selected = true;
+                    select.appendChild(option);
                 });
             } catch (error) {
                 console.error('Error loading granularities:', error);
-                granularitySelect.innerHTML = '<option value="">Error loading granularities</option>';
             }
         }
 
-        // Load dropdowns on page load
         loadExchanges();
         loadGranularities();
-        
-        form.addEventListener('submit', async (e) => {
+
+        // Check connection status
+        fetch('/api/status')
+            .then(res => res.json())
+            .then(data => {
+                const status = document.getElementById('connectionStatus');
+                if (data.success) {
+                    status.className = 'status success';
+                    status.textContent = `✓ Connected as ${data.user_name} (${data.email})`;
+                } else {
+                    status.className = 'status error';
+                    status.textContent = '❌ Connection failed: ' + data.error;
+                }
+                status.style.display = 'block';
+            });
+
+        // ==================== Historical Data ====================
+        document.getElementById('fetchForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const loading = document.getElementById('dataLoading');
+            const response = document.getElementById('dataResponse');
             
-            submitBtn.disabled = true;
+            btn.disabled = true;
             loading.style.display = 'block';
             response.style.display = 'none';
-            status.style.display = 'none';
             
-            const formData = new FormData(form);
+            const formData = new FormData(e.target);
             const data = {
                 stocks: formData.get('stocks').trim() ? 
                     formData.get('stocks').split(',').map(s => s.trim().toUpperCase()) : null,
@@ -265,19 +641,13 @@
             try {
                 const res = await fetch('/api/data', {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-                
                 const result = await res.json();
                 
                 if (result.error) {
-                    status.className = 'status error';
-                    status.textContent = '❌ Error: ' + result.error;
-                    status.style.display = 'block';
+                    response.innerHTML = `<p style="color: #dc3545;">❌ Error: ${result.error}</p>`;
                 } else {
                     response.innerHTML = `
                         <h3>✅ Fetch Complete!</h3>
@@ -285,35 +655,537 @@
                         <p><strong>Failed:</strong> ${result.failed}</p>
                         <p><strong>Not Found:</strong> ${result.not_found}</p>
                         <p><strong>Total:</strong> ${result.total}</p>
-                        <p><strong>Data saved in:</strong> data/ folder</p>
                     `;
-                    response.style.display = 'block';
                 }
+                response.style.display = 'block';
             } catch (error) {
-                status.className = 'status error';
-                status.textContent = '❌ Error: ' + error.message;
-                status.style.display = 'block';
+                response.innerHTML = `<p style="color: #dc3545;">❌ Error: ${error.message}</p>`;
+                response.style.display = 'block';
             } finally {
-                submitBtn.disabled = false;
+                btn.disabled = false;
                 loading.style.display = 'none';
             }
         });
-        
-        // Check connection on load
-        fetch('/api/status')
-            .then(res => res.json())
-            .then(data => {
+
+        // ==================== Live Price ====================
+        document.getElementById('priceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const symbol = document.getElementById('priceSymbol').value.trim().toUpperCase();
+            const exchange = document.getElementById('priceExchange').value;
+            const loading = document.getElementById('priceLoading');
+            const result = document.getElementById('priceResult');
+            
+            if (!symbol) return;
+            
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            
+            try {
+                const res = await fetch(`/api/price/${symbol}?exchange=${exchange}`);
+                const data = await res.json();
+                
                 if (data.success) {
-                    status.className = 'status success';
-                    status.textContent = `✓ Connected as ${data.user_name} (${data.email})`;
-                    status.style.display = 'block';
+                    result.innerHTML = `
+                        <div class="price-card">
+                            <div class="price-symbol">${data.symbol} (${data.exchange})</div>
+                            <div class="price-value">₹${data.last_price?.toLocaleString('en-IN') || '-'}</div>
+                            <div class="price-details">
+                                <div class="price-detail">
+                                    <div class="price-detail-label">Open</div>
+                                    <div class="price-detail-value">₹${data.open?.toLocaleString('en-IN') || '-'}</div>
+                                </div>
+                                <div class="price-detail">
+                                    <div class="price-detail-label">High</div>
+                                    <div class="price-detail-value">₹${data.high?.toLocaleString('en-IN') || '-'}</div>
+                                </div>
+                                <div class="price-detail">
+                                    <div class="price-detail-label">Low</div>
+                                    <div class="price-detail-value">₹${data.low?.toLocaleString('en-IN') || '-'}</div>
+                                </div>
+                                <div class="price-detail">
+                                    <div class="price-detail-label">Close</div>
+                                    <div class="price-detail-value">₹${data.close?.toLocaleString('en-IN') || '-'}</div>
+                                </div>
+                                <div class="price-detail">
+                                    <div class="price-detail-label">Volume</div>
+                                    <div class="price-detail-value">${data.volume?.toLocaleString('en-IN') || '-'}</div>
+                                </div>
+                                <div class="price-detail">
+                                    <div class="price-detail-label">Bid</div>
+                                    <div class="price-detail-value">₹${data.bid_price?.toLocaleString('en-IN') || '-'}</div>
+                                </div>
+                                <div class="price-detail">
+                                    <div class="price-detail-label">Ask</div>
+                                    <div class="price-detail-value">₹${data.ask_price?.toLocaleString('en-IN') || '-'}</div>
+                                </div>
+                                <div class="price-detail">
+                                    <div class="price-detail-label">Time</div>
+                                    <div class="price-detail-value">${data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : '-'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
                 } else {
-                    status.className = 'status error';
-                    status.textContent = '❌ Connection failed: ' + data.error;
-                    status.style.display = 'block';
-                    submitBtn.disabled = true;
+                    result.innerHTML = `<div class="status error">❌ ${data.error}</div>`;
                 }
-            });
+                result.style.display = 'block';
+            } catch (error) {
+                result.innerHTML = `<div class="status error">❌ Error: ${error.message}</div>`;
+                result.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+
+        // ==================== Order Placement ====================
+        let currentPrice = null;
+
+        // Check price button
+        document.getElementById('checkPriceBtn').addEventListener('click', async () => {
+            const symbol = document.getElementById('orderSymbol').value.trim().toUpperCase();
+            const exchange = document.getElementById('orderExchange').value;
+            
+            if (!symbol) {
+                alert('Please enter a stock symbol');
+                return;
+            }
+            
+            document.getElementById('checkPriceBtn').disabled = true;
+            document.getElementById('checkPriceBtn').textContent = '⏳ Loading...';
+            
+            try {
+                const res = await fetch(`/api/price/ltp/${symbol}?exchange=${exchange}`);
+                const data = await res.json();
+                
+                if (data.success) {
+                    currentPrice = data.last_price;
+                    document.getElementById('orderPriceSymbol').textContent = `${symbol} (${exchange})`;
+                    document.getElementById('orderCurrentPrice').textContent = currentPrice.toLocaleString('en-IN');
+                    document.getElementById('orderPriceDisplay').style.display = 'block';
+                    updateEstimates();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                document.getElementById('checkPriceBtn').disabled = false;
+                document.getElementById('checkPriceBtn').textContent = '💰 Check Current Price';
+            }
+        });
+
+        // Update estimates when inputs change
+        document.getElementById('buyAmount').addEventListener('input', updateEstimates);
+        document.getElementById('sellQuantity').addEventListener('input', updateEstimates);
+
+        function updateEstimates() {
+            if (!currentPrice) return;
+            
+            const buyAmount = parseFloat(document.getElementById('buyAmount').value) || 0;
+            const sellQty = parseInt(document.getElementById('sellQuantity').value) || 0;
+            
+            if (buyAmount > 0) {
+                const shares = Math.floor(buyAmount / currentPrice);
+                const actualCost = shares * currentPrice;
+                document.getElementById('buyEstimate').textContent = 
+                    `≈ ${shares} shares @ ₹${currentPrice.toLocaleString('en-IN')} = ₹${actualCost.toLocaleString('en-IN')}`;
+            } else {
+                document.getElementById('buyEstimate').textContent = '';
+            }
+            
+            if (sellQty > 0) {
+                const amount = sellQty * currentPrice;
+                document.getElementById('sellEstimate').textContent = 
+                    `≈ ₹${amount.toLocaleString('en-IN')} (${sellQty} × ₹${currentPrice.toLocaleString('en-IN')})`;
+            } else {
+                document.getElementById('sellEstimate').textContent = '';
+            }
+        }
+
+        // Place Buy Order
+        document.getElementById('buyBtn').addEventListener('click', async () => {
+            const symbol = document.getElementById('orderSymbol').value.trim().toUpperCase();
+            const exchange = document.getElementById('orderExchange').value;
+            const money = parseFloat(document.getElementById('buyAmount').value);
+            
+            if (!symbol) { alert('Please enter a stock symbol'); return; }
+            if (!money || money <= 0) { alert('Please enter a valid amount'); return; }
+            
+            if (!confirm(`Buy ${symbol} with ₹${money.toLocaleString('en-IN')}?\n\nThis will place a REAL order!`)) {
+                return;
+            }
+            
+            await placeOrder('buy', { symbol, money, exchange });
+        });
+
+        // Place Sell Order
+        document.getElementById('sellBtn').addEventListener('click', async () => {
+            const symbol = document.getElementById('orderSymbol').value.trim().toUpperCase();
+            const exchange = document.getElementById('orderExchange').value;
+            const quantity = parseInt(document.getElementById('sellQuantity').value);
+            
+            if (!symbol) { alert('Please enter a stock symbol'); return; }
+            if (!quantity || quantity <= 0) { alert('Please enter a valid quantity'); return; }
+            
+            if (!confirm(`Sell ${quantity} shares of ${symbol}?\n\nThis will place a REAL order!`)) {
+                return;
+            }
+            
+            await placeOrder('sell', { symbol, quantity, exchange });
+        });
+
+        async function placeOrder(type, params) {
+            const loading = document.getElementById('orderLoading');
+            const result = document.getElementById('orderResult');
+            const status = document.getElementById('orderStatus');
+            
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            status.style.display = 'none';
+            
+            try {
+                const res = await fetch(`/api/order/${type}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    const isBuy = type === 'buy';
+                    result.innerHTML = `
+                        <div class="order-result">
+                            <h3 style="color: ${isBuy ? '#28a745' : '#dc3545'};">
+                                ${isBuy ? '✅ Buy' : '✅ Sell'} Order Executed!
+                            </h3>
+                            <div class="order-detail">
+                                <span>Order ID</span>
+                                <span><strong>${data.order_id}</strong></span>
+                            </div>
+                            <div class="order-detail">
+                                <span>Status</span>
+                                <span><strong style="color: #28a745;">${data.status}</strong></span>
+                            </div>
+                            <div class="order-detail">
+                                <span>Symbol</span>
+                                <span>${data.symbol} (${data.exchange})</span>
+                            </div>
+                            <div class="order-detail">
+                                <span>${isBuy ? 'Shares Bought' : 'Shares Sold'}</span>
+                                <span><strong>${isBuy ? data.shares_bought : data.shares_sold}</strong></span>
+                            </div>
+                            <div class="order-detail">
+                                <span>Price per Share</span>
+                                <span>₹${data.price_per_share?.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div class="order-detail">
+                                <span>Total Amount</span>
+                                <span><strong>₹${data.total_amount?.toLocaleString('en-IN')}</strong></span>
+                            </div>
+                            ${isBuy && data.money_remaining ? `
+                            <div class="order-detail">
+                                <span>Money Remaining</span>
+                                <span>₹${data.money_remaining?.toLocaleString('en-IN')}</span>
+                            </div>
+                            ` : ''}
+                            ${data.order_timestamp ? `
+                            <div class="order-detail">
+                                <span>Timestamp</span>
+                                <span>${data.order_timestamp}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="order-result failed">
+                            <h3 style="color: #dc3545;">❌ Order Failed</h3>
+                            <p><strong>Error:</strong> ${data.error}</p>
+                            ${data.status ? `<p><strong>Status:</strong> ${data.status}</p>` : ''}
+                        </div>
+                    `;
+                }
+                result.style.display = 'block';
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="order-result failed">
+                        <h3 style="color: #dc3545;">❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                result.style.display = 'block';
+            }            finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // ==================== GTT Orders ====================
+        let gttCurrentPrice = null;
+
+        // Check price for GTT
+        document.getElementById('gttCheckPriceBtn').addEventListener('click', async () => {
+            const symbol = document.getElementById('gttSymbol').value.trim().toUpperCase();
+            const exchange = document.getElementById('gttExchange').value;
+            
+            if (!symbol) {
+                alert('Please enter a stock symbol');
+                return;
+            }
+            
+            document.getElementById('gttCheckPriceBtn').disabled = true;
+            document.getElementById('gttCheckPriceBtn').textContent = '⏳ Loading...';
+            
+            try {
+                const res = await fetch(`/api/price/ltp/${symbol}?exchange=${exchange}`);
+                const data = await res.json();
+                
+                if (data.success) {
+                    gttCurrentPrice = data.last_price;
+                    document.getElementById('gttPriceSymbol').textContent = `${symbol} (${exchange})`;
+                    document.getElementById('gttCurrentPrice').textContent = gttCurrentPrice.toLocaleString('en-IN');
+                    document.getElementById('gttPriceDisplay').style.display = 'block';
+                    updateGttEstimates();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                document.getElementById('gttCheckPriceBtn').disabled = false;
+                document.getElementById('gttCheckPriceBtn').textContent = '💰 Check Current Price';
+            }
+        });
+
+        // Update GTT estimates when inputs change
+        document.getElementById('gttTargetPrice').addEventListener('input', updateGttEstimates);
+        document.getElementById('gttStoplossPrice').addEventListener('input', updateGttEstimates);
+        document.getElementById('gttQuantity').addEventListener('input', updateGttEstimates);
+
+        function updateGttEstimates() {
+            if (!gttCurrentPrice) return;
+            
+            const quantity = parseInt(document.getElementById('gttQuantity').value) || 0;
+            const targetPrice = parseFloat(document.getElementById('gttTargetPrice').value) || 0;
+            const stoplossPrice = parseFloat(document.getElementById('gttStoplossPrice').value) || 0;
+            
+            if (quantity > 0 && targetPrice > 0) {
+                const profit = (targetPrice - gttCurrentPrice) * quantity;
+                const profitPct = ((targetPrice - gttCurrentPrice) / gttCurrentPrice * 100).toFixed(2);
+                if (profit > 0) {
+                    document.getElementById('gttTargetEstimate').textContent = 
+                        `Potential profit: ₹${profit.toLocaleString('en-IN')} (+${profitPct}%)`;
+                } else {
+                    document.getElementById('gttTargetEstimate').textContent = 
+                        `⚠️ Target must be above current price (₹${gttCurrentPrice.toLocaleString('en-IN')})`;
+                }
+            } else {
+                document.getElementById('gttTargetEstimate').textContent = '';
+            }
+            
+            if (quantity > 0 && stoplossPrice > 0) {
+                const loss = (gttCurrentPrice - stoplossPrice) * quantity;
+                const lossPct = ((gttCurrentPrice - stoplossPrice) / gttCurrentPrice * 100).toFixed(2);
+                if (loss > 0) {
+                    document.getElementById('gttStoplossEstimate').textContent = 
+                        `Max loss: ₹${loss.toLocaleString('en-IN')} (-${lossPct}%)`;
+                } else {
+                    document.getElementById('gttStoplossEstimate').textContent = 
+                        `⚠️ Stop-loss must be below current price (₹${gttCurrentPrice.toLocaleString('en-IN')})`;
+                }
+            } else {
+                document.getElementById('gttStoplossEstimate').textContent = '';
+            }
+        }
+
+        // Place OCO GTT Order
+        document.getElementById('placeOcoGttBtn').addEventListener('click', async () => {
+            const symbol = document.getElementById('gttSymbol').value.trim().toUpperCase();
+            const exchange = document.getElementById('gttExchange').value;
+            const quantity = parseInt(document.getElementById('gttQuantity').value);
+            const targetPrice = parseFloat(document.getElementById('gttTargetPrice').value);
+            const stoplossPrice = parseFloat(document.getElementById('gttStoplossPrice').value);
+            
+            if (!symbol) { alert('Please enter a stock symbol'); return; }
+            if (!quantity || quantity <= 0) { alert('Please enter a valid quantity'); return; }
+            if (!targetPrice || targetPrice <= 0) { alert('Please enter a valid target price'); return; }
+            if (!stoplossPrice || stoplossPrice <= 0) { alert('Please enter a valid stop-loss price'); return; }
+            
+            const confirmMsg = `Place OCO GTT Order?\n\n` +
+                `Symbol: ${symbol} (${exchange})\n` +
+                `Quantity: ${quantity} shares\n` +
+                `Target: ₹${targetPrice.toLocaleString('en-IN')}\n` +
+                `Stop-Loss: ₹${stoplossPrice.toLocaleString('en-IN')}\n\n` +
+                `This will create a REAL GTT order!`;
+            
+            if (!confirm(confirmMsg)) return;
+            
+            const loading = document.getElementById('gttLoading');
+            const result = document.getElementById('gttResult');
+            const status = document.getElementById('gttStatus');
+            
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            status.style.display = 'none';
+            
+            try {
+                const res = await fetch('/api/gtt/oco', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol,
+                        quantity,
+                        target_trigger_price: targetPrice,
+                        stoploss_trigger_price: stoplossPrice,
+                        exchange
+                    })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    result.innerHTML = `
+                        <div class="order-result">
+                            <h3 style="color: #28a745;">✅ OCO GTT Order Placed!</h3>
+                            <div class="order-detail">
+                                <span>Trigger ID</span>
+                                <span><strong>${data.trigger_id}</strong></span>
+                            </div>
+                            <div class="order-detail">
+                                <span>Symbol</span>
+                                <span>${data.symbol} (${data.exchange})</span>
+                            </div>
+                            <div class="order-detail">
+                                <span>Quantity</span>
+                                <span><strong>${data.quantity} shares</strong></span>
+                            </div>
+                            <div class="order-detail">
+                                <span>Current Price</span>
+                                <span>₹${data.current_price?.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div class="order-detail" style="background: #d4edda; padding: 8px; border-radius: 4px;">
+                                <span>🟢 Target</span>
+                                <span>₹${data.target?.trigger_price?.toLocaleString('en-IN')} (+${data.target?.profit_percent}%)</span>
+                            </div>
+                            <div class="order-detail" style="background: #f8d7da; padding: 8px; border-radius: 4px;">
+                                <span>🔴 Stop-Loss</span>
+                                <span>₹${data.stoploss?.trigger_price?.toLocaleString('en-IN')} (-${data.stoploss?.loss_percent}%)</span>
+                            </div>
+                            <div class="order-detail">
+                                <span>Potential Profit</span>
+                                <span style="color: #28a745;">₹${data.target?.potential_profit?.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div class="order-detail">
+                                <span>Max Loss</span>
+                                <span style="color: #dc3545;">₹${data.stoploss?.potential_loss?.toLocaleString('en-IN')}</span>
+                            </div>
+                        </div>
+                    `;
+                    // Refresh GTT list
+                    loadGttOrders();
+                } else {
+                    result.innerHTML = `
+                        <div class="order-result failed">
+                            <h3 style="color: #dc3545;">❌ GTT Order Failed</h3>
+                            <p><strong>Error:</strong> ${data.error}</p>
+                        </div>
+                    `;
+                }
+                result.style.display = 'block';
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="order-result failed">
+                        <h3 style="color: #dc3545;">❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                result.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+
+        // Refresh GTT Orders
+        document.getElementById('refreshGttBtn').addEventListener('click', loadGttOrders);
+
+        async function loadGttOrders() {
+            const list = document.getElementById('gttOrdersList');
+            const content = document.getElementById('gttOrdersContent');
+            const loading = document.getElementById('gttOrdersLoading');
+            const empty = document.getElementById('gttOrdersEmpty');
+            
+            list.style.display = 'none';
+            empty.style.display = 'none';
+            loading.style.display = 'block';
+            
+            try {
+                const res = await fetch('/api/gtt');
+                const data = await res.json();
+                
+                if (data.success && data.gtts && data.gtts.length > 0) {
+                    content.innerHTML = data.gtts.map(gtt => {
+                        const isOco = gtt.trigger_type === 'two-leg';
+                        const triggers = gtt.trigger_values || [];
+                        
+                        return `
+                            <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <div>
+                                        <strong style="font-size: 16px;">${gtt.symbol}</strong>
+                                        <span style="background: ${isOco ? '#667eea' : '#6c757d'}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 10px;">
+                                            ${isOco ? 'OCO' : 'Single'}
+                                        </span>
+                                        <span style="background: ${gtt.status === 'active' ? '#28a745' : '#ffc107'}; color: ${gtt.status === 'active' ? 'white' : 'black'}; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 5px;">
+                                            ${gtt.status}
+                                        </span>
+                                    </div>
+                                    <button onclick="cancelGtt(${gtt.id})" style="background: #dc3545; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                        ❌ Cancel
+                                    </button>
+                                </div>
+                                <div style="font-size: 14px; color: #666;">
+                                    <span>ID: ${gtt.id}</span>
+                                    ${isOco ? `
+                                        <span style="margin-left: 15px;">🔴 SL: ₹${triggers[0]?.toLocaleString('en-IN')}</span>
+                                        <span style="margin-left: 15px;">🟢 Target: ₹${triggers[1]?.toLocaleString('en-IN')}</span>
+                                    ` : `
+                                        <span style="margin-left: 15px;">Trigger: ₹${triggers[0]?.toLocaleString('en-IN')}</span>
+                                    `}
+                                    <span style="margin-left: 15px;">LTP: ₹${gtt.last_price?.toLocaleString('en-IN')}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    list.style.display = 'block';
+                } else {
+                    empty.style.display = 'block';
+                }
+            } catch (error) {
+                content.innerHTML = `<div class="status error">Error loading GTT orders: ${error.message}</div>`;
+                list.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        async function cancelGtt(triggerId) {
+            if (!confirm(`Cancel GTT order #${triggerId}?`)) return;
+            
+            try {
+                const res = await fetch(`/api/gtt/${triggerId}`, { method: 'DELETE' });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('GTT order cancelled successfully!');
+                    loadGttOrders();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Load GTT orders when tab is clicked
+        document.querySelector('[data-tab="gtt"]').addEventListener('click', loadGttOrders);
     </script>
 </body>
 </html>

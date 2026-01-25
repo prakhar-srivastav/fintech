@@ -3,22 +3,88 @@ import os
 import requests
 import sqlite3
 import mysql.connector
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+
+import logging
+logger = logging.getLogger(__name__)
+
+# IST is UTC+5:30
+IST = timezone(timedelta(hours=5, minutes=30))
+UTC = timezone.utc
+
 
 def convert_to_mysql_datetime(date_str):
+    """
+    Convert datetime string to MySQL format in IST (Indian Standard Time).
+    
+    Handles:
+    - 'Mon, 20 Jan 2025 03:45:00 GMT' -> converts from UTC to IST
+    - '2025-01-20T03:45:00Z' -> converts from UTC to IST
+    - '2025-01-20T09:15:00+05:30' -> already IST, just formats
+    - '2025-01-20 09:15:00' -> assumes already IST
+    """
+    if date_str is None:
+        return None
+    
     try:
         # Try parsing 'Mon, 20 Jan 2025 03:45:00 GMT' format
-        parsed_date = datetime.strptime(date_str, '%a, %d %b %Y %H:%M:%S %Z')
-        record_time = parsed_date.strftime('%Y-%m-%d %H:%M:%S')
-    except (ValueError, TypeError):
-        try:
-            # Try parsing ISO format '2025-01-20T03:45:00'
+        # Note: %Z doesn't reliably parse timezone, so we handle GMT explicitly
+        if 'GMT' in str(date_str) or 'UTC' in str(date_str):
+            # Remove timezone suffix and parse
+            clean_str = str(date_str).replace(' GMT', '').replace(' UTC', '')
+            parsed_date = datetime.strptime(clean_str, '%a, %d %b %Y %H:%M:%S')
+            # Mark as UTC and convert to IST
+            parsed_date = parsed_date.replace(tzinfo=UTC)
+            ist_date = parsed_date.astimezone(IST)
+            record_time = ist_date.strftime('%Y-%m-%d %H:%M:%S')
+            logger.info(f"Converted GMT '{date_str}' to IST '{record_time}'")
+            return record_time
+    except (ValueError, TypeError) as e:
+        logger.debug(f"GMT parsing failed: {e}")
+    
+    try:
+        # Try parsing ISO format with Z (UTC)
+        if isinstance(date_str, str) and date_str.endswith('Z'):
             parsed_date = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-            record_time = parsed_date.strftime('%Y-%m-%d %H:%M:%S')
-        except (ValueError, TypeError):
-            # Use as-is if already in correct format or None
-            record_time = date_str
-    return record_time
+            ist_date = parsed_date.astimezone(IST)
+            record_time = ist_date.strftime('%Y-%m-%d %H:%M:%S')
+            logger.info(f"Converted UTC ISO '{date_str}' to IST '{record_time}'")
+            return record_time
+    except (ValueError, TypeError) as e:
+        logger.debug(f"ISO Z parsing failed: {e}")
+    
+    try:
+        # Try parsing ISO format with timezone info
+        if isinstance(date_str, str) and ('+' in date_str or 'T' in date_str):
+            parsed_date = datetime.fromisoformat(date_str)
+            if parsed_date.tzinfo is not None:
+                ist_date = parsed_date.astimezone(IST)
+                record_time = ist_date.strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                # No timezone, assume already IST
+                record_time = parsed_date.strftime('%Y-%m-%d %H:%M:%S')
+            logger.info(f"Converted ISO '{date_str}' to '{record_time}'")
+            return record_time
+    except (ValueError, TypeError) as e:
+        logger.debug(f"ISO parsing failed: {e}")
+    
+    try:
+        # Handle datetime objects directly
+        if isinstance(date_str, datetime):
+            if date_str.tzinfo is not None:
+                ist_date = date_str.astimezone(IST)
+                record_time = ist_date.strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                # No timezone, assume already IST
+                record_time = date_str.strftime('%Y-%m-%d %H:%M:%S')
+            logger.info(f"Converted datetime '{date_str}' to '{record_time}'")
+            return record_time
+    except (ValueError, TypeError) as e:
+        logger.debug(f"Datetime object parsing failed: {e}")
+    
+    # Use as-is if already in correct format
+    logger.info(f"Using as-is: '{date_str}'")
+    return date_str
 
 class DBClient:
     def __init__(self, db_config):

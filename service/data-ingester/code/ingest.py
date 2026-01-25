@@ -91,7 +91,7 @@ def process_data(payload):
         exchanges=exchanges,
         granularity=granularity
     )
-
+    logger.info(f"Fetched data: {data}")
     if data:
         broker_data_rows = transform_data_for_ingestion(data)
         db_client.insert_broker_data(broker_data_rows)
