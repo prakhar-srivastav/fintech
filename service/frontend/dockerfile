@@ -3,12 +3,14 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Install dependencies
-COPY requirements.txt .
+COPY code/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY app.py .
-COPY templates/ templates/
+# Copy application code from code/ directory
+COPY code/app.py .
+COPY code/db_client.py .
+COPY code/data_ingester_client.py .
+COPY code/templates/ templates/
 
 # Set environment variables
 ENV FLASK_APP=app.py

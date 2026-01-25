@@ -1,0 +1,30 @@
+# Frontend Dashboard Service Configuration
+# =========================================
+
+replicaCount: 1
+
+image:
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# Database and service configuration (matches data-ingester format)
+DB_CONFIG:
+  DB_HOST: mysql.database.svc.cluster.local
+  DB_USER: root
+  DB_PASSWORD: ""
+  DB_NAME: fintech_db
+  DB_PORT: "3306"
+  DATA_INGESTER_URL: http://data-ingester.fintech.svc.cluster.local:8000
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi

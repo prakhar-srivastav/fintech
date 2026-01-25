@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_HOST
+              value: {{ .Values.DB_CONFIG.DB_HOST | quote }}
+            - name: DB_USER
+              value: {{ .Values.DB_CONFIG.DB_USER | quote }}
+            - name: DB_PASSWORD
+              value: {{ .Values.DB_CONFIG.DB_PASSWORD | quote }}
+            - name: DB_NAME
+              value: {{ .Values.DB_CONFIG.DB_NAME | quote }}
+            - name: DB_PORT
+              value: {{ .Values.DB_CONFIG.DB_PORT | quote }}
+            - name: DATA_INGESTER_URL
+              value: {{ .Values.DB_CONFIG.DATA_INGESTER_URL | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
