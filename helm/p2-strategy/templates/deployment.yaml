@@ -94,6 +94,8 @@ spec:
               value: {{ .Values.DB_CONFIG.DB_PORT | quote }}
             - name: POLL_INTERVAL
               value: {{ .Values.POLLER_CONFIG.POLL_INTERVAL | quote }}
+            - name: DATA_INGESTER_URL
+              value: {{ .Values.DATA_INGESTER_URL | quote }}
           resources:
             {{- toYaml .Values.configPoller.resources | nindent 12 }}
 {{- end }}
