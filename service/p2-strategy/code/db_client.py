@@ -5,6 +5,7 @@ Provides methods to query stock data from MySQL database.
 
 import os
 import logging
+import json
 import mysql.connector
 from mysql.connector import pooling
 from datetime import datetime
@@ -12,12 +13,6 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-import time
-import os
-import requests
-import sqlite3
-import mysql.connector
-from datetime import datetime
 
 def convert_to_mysql_datetime(date_str):
     try:
@@ -33,6 +28,7 @@ def convert_to_mysql_datetime(date_str):
             # Use as-is if already in correct format or None
             record_time = date_str
     return record_time
+
 
 class DBClient:
 
@@ -59,6 +55,54 @@ class DBClient:
             if conn:
                 conn.close()
     
+    def get_default_strategy_config(self):
+        """Get default strategy configuration from database"""
+        query = """
+        SELECT parameter, value FROM default_strategy_config
+        """
+        config = {}
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                rows = cursor.fetchall()
+                for row in rows:
+                    param, value = row
+                    if param in ['vertical_gaps', 'horizontal_gaps', 'continuous_days']:
+                        # Handle float values for vertical_gaps
+                        if param == 'vertical_gaps':
+                            config[param] = [float(x) for x in value.split(',')]
+                        else:
+                            config[param] = [int(x) for x in value.split(',')]
+                    else:
+                        config[param] = value
+                cursor.close()
+        except Exception as e:
+            logger.warning(f"Could not load default config from DB: {e}, using hardcoded defaults")
+            # Return hardcoded defaults if table doesn't exist
+            config = {
+                'vertical_gaps': [0.5, 1, 2],
+                'horizontal_gaps': [2],
+                'continuous_days': [3, 5, 7, 10],
+                'granularity': '3minute'
+            }
+        return config
+        
+    def get_granularities(self):
+        """Get available granularities from broker data"""
+        query = """
+        SELECT DISTINCT granularity FROM broker_data
+        """
+        granularities = []
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            for row in rows:
+                granularities.append(row[0])
+            cursor.close()
+        return granularities
+
     def get_stock_data(self, stock, exchange=None, granularity=None, 
                        start_date=None, end_date=None, limit=1000):
         """
@@ -145,101 +189,77 @@ class DBClient:
                 'count': len(rows),
                 'data': data
             }
-    
-    def get_summary(self):
-        """Get summary statistics about the data"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("""
-                SELECT 
-                    COUNT(*) as total_records,
-                    COUNT(DISTINCT stock) as total_stocks,
-                    COUNT(DISTINCT exchange) as total_exchanges,
-                    MIN(record_time) as earliest_record,
-                    MAX(record_time) as latest_record
-                FROM broker_data
-            """)
-            summary = cursor.fetchone()
-            cursor.close()
-            
-            # Format dates
-            if summary['earliest_record']:
-                summary['earliest_record'] = summary['earliest_record'].strftime('%Y-%m-%d %H:%M:%S')
-            if summary['latest_record']:
-                summary['latest_record'] = summary['latest_record'].strftime('%Y-%m-%d %H:%M:%S')
-            
-            return summary
-    
-    def get_latest_prices(self, stocks=None, limit=10):
+
+    def create_strategy_scheduler_job(self, config):
+        """Create a new strategy scheduler job"""
+        query = """
+        INSERT INTO strategy_scheduler_jobs (config, status, created_at)
+        VALUES (%s, %s, %s)
         """
-        Get latest prices for stocks.
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (json.dumps(config), 'scheduled', datetime.now()))
+            conn.commit()
+            job_id = cursor.lastrowid
+            cursor.close()
+            return job_id
+
+    def create_strategy_run(self, config, status='queued'):
+        """
+        Create a new strategy run record.
         
         Args:
-            stocks: List of stock symbols. If None, gets all stocks.
-            limit: Number of stocks to return if stocks is None.
+            config: Configuration dict used for this run
+            status: Initial status (default: 'queued')
         
         Returns:
-            List of latest price data per stock
+            int: The auto-generated strategy run ID
+        """
+        query = """
+        INSERT INTO strategy_runs (config, status, when_added)
+        VALUES (%s, %s, NOW())
         """
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            
-            if stocks:
-                placeholders = ','.join(['%s'] * len(stocks))
-                query = f"""
-                    SELECT b1.*
-                    FROM broker_data b1
-                    INNER JOIN (
-                        SELECT stock, MAX(record_time) as max_time
-                        FROM broker_data
-                        WHERE stock IN ({placeholders})
-                        GROUP BY stock
-                    ) b2 ON b1.stock = b2.stock AND b1.record_time = b2.max_time
-                    ORDER BY b1.stock
-                """
-                cursor.execute(query, stocks)
-            else:
-                query = f"""
-                    SELECT b1.*
-                    FROM broker_data b1
-                    INNER JOIN (
-                        SELECT stock, MAX(record_time) as max_time
-                        FROM broker_data
-                        GROUP BY stock
-                    ) b2 ON b1.stock = b2.stock AND b1.record_time = b2.max_time
-                    ORDER BY b1.stock
-                    LIMIT {int(limit)}
-                """
-                cursor.execute(query)
-            
-            result = cursor.fetchall()
+            cursor = conn.cursor()
+            cursor.execute(query, (json.dumps(config), status))
+            conn.commit()
+            strategy_id = cursor.lastrowid
             cursor.close()
-            
-            # Format datetime fields
-            for row in result:
-                if row.get('record_time'):
-                    row['record_time'] = row['record_time'].strftime('%Y-%m-%d %H:%M:%S')
-                if row.get('when_added'):
-                    row['when_added'] = row['when_added'].strftime('%Y-%m-%d %H:%M:%S')
-            
-            return result
+            return strategy_id
 
-    def insert_strategy_results(self, results, strategy_id):
+    def update_strategy_run_status(self, strategy_id, status):
         """
-        Insert strategy results into the database.
+        Update the status of a strategy run.
         
         Args:
-            results: List of dictionaries with strategy results.
-            strategy_id: Unique identifier for this strategy run.
+            strategy_id: The strategy run ID
+            status: New status ('running', 'completed', 'failed')
         """
+        query = """
+        UPDATE strategy_runs 
+        SET status = %s, updated_at = NOW()
+        WHERE id = %s
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (status, strategy_id))
+            conn.commit()
+            cursor.close()
 
-        insert_strategy_runs_query = """
-        REPLACE INTO strategy_runs (id, when_added)
-        VALUES (%s, NOW())
+    def save_strategy_results(self, strategy_id, results):
         """
+        Save strategy results to the database.
         
+        Args:
+            strategy_id: The strategy run ID
+            results: List of result dictionaries
+        """
         insert_query = """
-        REPLACE INTO strategy_results (stock, exchange, x, y, exceed_prob, profit_days, average, total_count, highest, p5, p10, p20, p40, p50, vertical_gap, horizontal_gap, continuous_days, strategy_id)
+        INSERT INTO strategy_results (
+            stock, exchange, x, y, exceed_prob, profit_days, average, 
+            total_count, highest, p5, p10, p20, p40, p50, 
+            vertical_gap, horizontal_gap, continuous_days, strategy_id
+        )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         formatted_rows = []
@@ -268,7 +288,6 @@ class DBClient:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             try:
-                cursor.execute(insert_strategy_runs_query, (strategy_id,))
                 cursor.executemany(insert_query, formatted_rows)
                 conn.commit()
             except Exception as e:
@@ -277,11 +296,12 @@ class DBClient:
             finally:
                 cursor.close()
 
-    def get_strategy_runs(self, limit=20, offset=0):
+    def get_strategy_runs(self, status=None, limit=20, offset=0):
         """
         Get list of all strategy runs with pagination.
         
         Args:
+            status: Filter by status (optional)
             limit: Maximum number of runs to return (default: 20)
             offset: Number of runs to skip (default: 0)
         
@@ -296,14 +316,20 @@ class DBClient:
             total = cursor.fetchone()['total']
             
             # Get paginated runs
-            cursor.execute("""
-                SELECT id, when_added,
+            query = """
+                SELECT id, when_added, status, config,
                     (SELECT COUNT(*) FROM strategy_results WHERE strategy_id = sr.id) as result_count
                 FROM strategy_runs sr
-                ORDER BY when_added DESC
-                LIMIT %s OFFSET %s
-            """, (limit, offset))
-            
+            """
+            params = []
+            if status:
+                query += " WHERE status = %s"
+                params.append(status)
+            query += " ORDER BY when_added DESC"
+            query += " LIMIT %s OFFSET %s"
+            params.extend([limit, offset])
+            cursor.execute(query, params)
+
             runs = cursor.fetchall()
             cursor.close()
             
@@ -311,6 +337,11 @@ class DBClient:
             for run in runs:
                 if run.get('when_added'):
                     run['when_added'] = run['when_added'].strftime('%Y-%m-%d %H:%M:%S')
+                if run.get('config'):
+                    try:
+                        run['config'] = json.loads(run['config'])
+                    except:
+                        pass
             
             return {
                 'runs': runs,
@@ -335,7 +366,7 @@ class DBClient:
             sort_order: Sort order - 'asc' or 'desc' (default: desc)
         
         Returns:
-            Dict with results, pagination info, and summary
+            Dict with results, pagination info
         """
         with self.get_connection() as conn:
             cursor = conn.cursor(dictionary=True)
@@ -401,226 +432,67 @@ class DBClient:
                 }
             }
 
-    def get_best_per_stock_exchange(self, strategy_id, top_n=1):
+    def get_pending_strategy_scheduler_jobs(self):
         """
-        Get the best result(s) for each stock/exchange pair from a strategy run.
-        Returns at most top_n entries per unique stock+exchange combination,
-        sorted by exceed_prob descending.
-        
-        Args:
-            strategy_id: The strategy run ID
-            top_n: Number of top results per stock/exchange pair (default: 1)
+        Get pending strategy scheduler jobs.
         
         Returns:
-            List of best results grouped by stock/exchange
+            List of pending jobs with id and config
+        """
+        query = """
+        SELECT id, config FROM strategy_scheduler_jobs
+        WHERE status = 'scheduled'
+        ORDER BY created_at ASC
         """
         with self.get_connection() as conn:
             cursor = conn.cursor(dictionary=True)
-            
-            # Use ROW_NUMBER() window function to get top N per group
-            query = """
-                SELECT * FROM (
-                    SELECT 
-                        id, stock, exchange, x, y, exceed_prob, profit_days, average,
-                        total_count, highest, p5, p10, p20, p40, p50, 
-                        vertical_gap, horizontal_gap, continuous_days,
-                        ROW_NUMBER() OVER (
-                            PARTITION BY stock, exchange 
-                            ORDER BY exceed_prob DESC
-                        ) as rn
-                    FROM strategy_results
-                    WHERE strategy_id = %s
-                ) ranked
-                WHERE rn <= %s
-                ORDER BY exceed_prob DESC
-            """
-            cursor.execute(query, (strategy_id, top_n))
-            results = cursor.fetchall()
+            cursor.execute(query)
+            jobs = cursor.fetchall()
             cursor.close()
             
-            # Process results
-            for row in results:
-                row.pop('rn', None)  # Remove ranking column
-                for key in ['exceed_prob', 'average', 'highest', 'p5', 'p10', 'p20', 'p40', 'p50']:
-                    if row.get(key) is not None:
-                        row[key] = float(row[key])
+            # Parse config JSON
+            for job in jobs:
+                if job.get('config'):
+                    try:
+                        job['config'] = json.loads(job['config'])
+                    except:
+                        pass
             
-            return results
+            return jobs
 
-    def get_top_configs_per_stock(self, strategy_id, stock, exchange=None, top_n=4):
+    def mark_strategy_scheduler_job_completed(self, job_id):
         """
-        Get the top N configurations for a specific stock.
+        Mark a strategy scheduler job as completed.
         
         Args:
-            strategy_id: The strategy run ID
-            stock: Stock symbol
-            exchange: Exchange (optional)
-            top_n: Number of top configurations to return (default: 4)
-        
-        Returns:
-            List of top N configurations for the stock
+            job_id: The job ID to mark as completed
+        """
+        query = """
+        UPDATE strategy_scheduler_jobs
+        SET status = 'completed', completed_at = NOW()
+        WHERE id = %s
         """
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            
-            query = """
-                SELECT id, stock, exchange, x, y, exceed_prob, profit_days, average,
-                       total_count, highest, p5, p10, p20, p40, p50, 
-                       vertical_gap, horizontal_gap, continuous_days
-                FROM strategy_results
-                WHERE strategy_id = %s AND stock = %s
-            """
-            params = [strategy_id, stock]
-            
-            if exchange:
-                query += " AND exchange = %s"
-                params.append(exchange)
-            
-            query += " ORDER BY exceed_prob DESC LIMIT %s"
-            params.append(top_n)
-            
-            cursor.execute(query, params)
-            results = cursor.fetchall()
+            cursor = conn.cursor()
+            cursor.execute(query, (job_id,))
+            conn.commit()
             cursor.close()
-            
-            # Process results
-            for row in results:
-                for key in ['exceed_prob', 'average', 'highest', 'p5', 'p10', 'p20', 'p40', 'p50']:
-                    if row.get(key) is not None:
-                        row[key] = float(row[key])
-            
-            return results
 
-    def get_strategy_summary(self, strategy_id):
+    def mark_strategy_scheduler_job_failed(self, job_id, error_message=None):
         """
-        Get summary statistics for a strategy run.
+        Mark a strategy scheduler job as failed.
         
         Args:
-            strategy_id: The strategy run ID
-        
-        Returns:
-            Dict with summary statistics
+            job_id: The job ID to mark as failed
+            error_message: Optional error message
+        """
+        query = """
+        UPDATE strategy_scheduler_jobs
+        SET status = 'failed', error_message = %s, completed_at = NOW()
+        WHERE id = %s
         """
         with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            
-            # Basic counts
-            cursor.execute("""
-                SELECT 
-                    COUNT(*) as total_results,
-                    COUNT(DISTINCT stock) as unique_stocks,
-                    COUNT(DISTINCT exchange) as unique_exchanges,
-                    MAX(exceed_prob) as max_exceed_prob,
-                    AVG(exceed_prob) as avg_exceed_prob,
-                    MAX(average) as max_average
-                FROM strategy_results
-                WHERE strategy_id = %s
-            """, (strategy_id,))
-            summary = cursor.fetchone()
-            
-            # Top symbols by max exceed_prob
-            cursor.execute("""
-                SELECT stock as symbol, exchange,
-                       MAX(exceed_prob) as max_exceed_prob,
-                       AVG(exceed_prob) as avg_exceed_prob,
-                       COUNT(*) as count
-                FROM strategy_results
-                WHERE strategy_id = %s
-                GROUP BY stock, exchange
-                ORDER BY max_exceed_prob DESC
-                LIMIT 10
-            """, (strategy_id,))
-            top_symbols = cursor.fetchall()
-            
-            # Stats by vertical_gap
-            cursor.execute("""
-                SELECT vertical_gap, AVG(exceed_prob) as avg_exceed_prob
-                FROM strategy_results
-                WHERE strategy_id = %s
-                GROUP BY vertical_gap
-                ORDER BY vertical_gap
-            """, (strategy_id,))
-            by_vertical_gap = {str(row['vertical_gap']): float(row['avg_exceed_prob']) for row in cursor.fetchall()}
-            
-            # Stats by horizontal_gap
-            cursor.execute("""
-                SELECT horizontal_gap, AVG(exceed_prob) as avg_exceed_prob
-                FROM strategy_results
-                WHERE strategy_id = %s
-                GROUP BY horizontal_gap
-                ORDER BY horizontal_gap
-            """, (strategy_id,))
-            by_horizontal_gap = {str(row['horizontal_gap']): float(row['avg_exceed_prob']) for row in cursor.fetchall()}
-            
-            # Stats by continuous_days
-            cursor.execute("""
-                SELECT continuous_days, AVG(exceed_prob) as avg_exceed_prob
-                FROM strategy_results
-                WHERE strategy_id = %s
-                GROUP BY continuous_days
-                ORDER BY continuous_days
-            """, (strategy_id,))
-            by_continuous_days = {str(row['continuous_days']): float(row['avg_exceed_prob']) for row in cursor.fetchall()}
-            
-            # Best overall result
-            cursor.execute("""
-                SELECT stock as symbol, exchange, x, y, exceed_prob, average, 
-                       vertical_gap, horizontal_gap, continuous_days
-                FROM strategy_results
-                WHERE strategy_id = %s
-                ORDER BY exceed_prob DESC
-                LIMIT 1
-            """, (strategy_id,))
-            best_overall = cursor.fetchone()
-            
+            cursor = conn.cursor()
+            cursor.execute(query, (error_message, job_id))
+            conn.commit()
             cursor.close()
-            
-            # Convert Decimal to float
-            for key in ['max_exceed_prob', 'avg_exceed_prob', 'max_average']:
-                if summary.get(key) is not None:
-                    summary[key] = float(summary[key])
-            
-            for sym in top_symbols:
-                for key in ['max_exceed_prob', 'avg_exceed_prob']:
-                    if sym.get(key) is not None:
-                        sym[key] = float(sym[key])
-            
-            if best_overall:
-                for key in ['exceed_prob', 'average']:
-                    if best_overall.get(key) is not None:
-                        best_overall[key] = float(best_overall[key])
-            
-            return {
-                'total_results': summary['total_results'],
-                'unique_symbols': summary['unique_stocks'],
-                'unique_exchanges': summary['unique_exchanges'],
-                'max_exceed_prob': summary['max_exceed_prob'],
-                'avg_exceed_prob': summary['avg_exceed_prob'],
-                'top_symbols': top_symbols,
-                'by_vertical_gap': by_vertical_gap,
-                'by_horizontal_gap': by_horizontal_gap,
-                'by_continuous_days': by_continuous_days,
-                'best_overall': best_overall
-            }
-
-    def get_unique_stocks(self, strategy_id):
-        """
-        Get list of unique stocks from a strategy run.
-        
-        Args:
-            strategy_id: The strategy run ID
-        
-        Returns:
-            List of unique stock symbols with their exchanges
-        """
-        with self.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("""
-                SELECT DISTINCT stock, exchange
-                FROM strategy_results
-                WHERE strategy_id = %s
-                ORDER BY stock, exchange
-            """, (strategy_id,))
-            stocks = cursor.fetchall()
-            cursor.close()
-            return stocks

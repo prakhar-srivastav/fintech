@@ -44,16 +44,20 @@ ADD CONSTRAINT uq_broker_data_unique_entry UNIQUE (record_time, stock, exchange,
 
 -- Table to store strategy run metadata
 CREATE TABLE strategy_runs (
-    id VARCHAR(50) PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     when_added TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL,
+    config JSON,
+    status VARCHAR(20) DEFAULT 'queued',
     description VARCHAR(255),
-    INDEX idx_strategy_runs_when_added (when_added)
+    INDEX idx_strategy_runs_when_added (when_added),
+    INDEX idx_strategy_runs_status (status)
 );
 
 -- Table to store strategy results
 CREATE TABLE strategy_results (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    strategy_id VARCHAR(50) NOT NULL,
+    strategy_id INT NOT NULL,
     stock VARCHAR(50) NOT NULL,
     exchange VARCHAR(50) NOT NULL,
     x VARCHAR(50),
@@ -88,3 +92,17 @@ CREATE TABLE strategy_results (
     UNIQUE KEY uq_strategy_results_unique 
         (strategy_id, stock, exchange, x, y, vertical_gap, horizontal_gap, continuous_days)
 );
+
+-- Table to store default strategy configuration
+CREATE TABLE default_strategy_config (
+    parameter VARCHAR(50) PRIMARY KEY,
+    value TEXT NOT NULL,
+    description VARCHAR(255)
+);
+
+-- Insert default configuration values
+INSERT INTO default_strategy_config (parameter, value, description) VALUES
+    ('vertical_gaps', '0.5,1,2', 'Vertical gap percentages'),
+    ('horizontal_gaps', '2', 'Horizontal gap values'),
+    ('continuous_days', '3,5,7,10', 'Number of continuous days'),
+    ('granularity', '3minute', 'Data granularity');

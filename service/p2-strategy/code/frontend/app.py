@@ -15,14 +15,8 @@ import json
 # Add parent path to import strategy modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from run_strategy import (
-    find_best_points_for_symbol,
-    get_date_range,
-    NSE_NIFTY_50,
-    BSE_TOP_50,
-    decorate_points
-)
 from db_client import DBClient
+from strategy_config_runner import process_strategy_scheduler_job
 
 # Configure logging
 logging.basicConfig(
@@ -47,33 +41,39 @@ DB_CONFIG = {
 # Initialize DB client
 db_client = DBClient(DB_CONFIG)
 
-# Default configurations
-DEFAULT_CONFIG = {
-    'vertical_gaps': [0.5, 1, 2],
-    'horizontal_gaps': [1, 2],
-    'continuous_days': [3, 5, 7, 10, 15, 20],
-    'granularity': '3minute',
-    'nse_stocks': list(NSE_NIFTY_50.keys()),
-    'bse_stocks': list(BSE_TOP_50.keys())
-}
 
+NSE_NIFTY_50 = [ "RELIANCE", "TCS", "HDFCBANK", "INFY", "HINDUNILVR", "ICICIBANK", "SBIN", "KOTAKBANK", "LT", "AXISBANK",]
+BSE_TOP_50 = [ "RELIANCE", "TCS", "HDFCBANK", "INFY", "HINDUNILVR", "ICICIBANK", "SBIN", "KOTAKBANK", "LT", "AXISBANK",]
+
+# Default configurations
+DEFAULT_CONFIG = db_client.get_default_strategy_config()
+
+# ============================================================================
+# ROUTES
+# ============================================================================
 
 @app.route('/')
 def index():
     """Serve the main dashboard"""
     return render_template('index.html')
 
+def get_date_range(days: int = 90):
+    """Get date range for specified number of days"""
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=days)
+    return start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')
+
 
 @app.route('/api/config', methods=['GET'])
 def get_config():
-    """Get default configuration"""
     start_date, end_date = get_date_range()
+    """Get default configuration"""
     config = {
         **DEFAULT_CONFIG,
+        'available_nse_stocks': NSE_NIFTY_50,
+        'available_bse_stocks': BSE_TOP_50,
         'start_date': start_date,
         'end_date': end_date,
-        'available_nse_stocks': NSE_NIFTY_50,
-        'available_bse_stocks': BSE_TOP_50
     }
     return jsonify(config)
 
@@ -81,14 +81,14 @@ def get_config():
 @app.route('/api/granularities', methods=['GET'])
 def get_granularities():
     """Get available granularities"""
-    granularities = ['1minute', '3minute', '5minute', '10minute', '15minute', '30minute', '60minute', 'day']
+    granularities = db_client.get_granularities()
     return jsonify({'granularities': granularities})
 
 
-@app.route('/api/run-strategy', methods=['POST'])
-def run_strategy():
+@app.route('/api/schedule-strategy', methods=['POST'])
+def schedule_strategy():
     """
-    Run the P2 strategy with provided configuration.
+    Schedule the P2 strategy with provided configuration.
     
     Expected payload:
     {
@@ -100,7 +100,6 @@ def run_strategy():
         "end_date": "2026-01-10",
         "nse_stocks": ["RELIANCE", "TCS"],
         "bse_stocks": ["HDFCBANK"],
-        "sync_data": true
     }
     """
     try:
@@ -115,7 +114,6 @@ def run_strategy():
         end_date = data.get('end_date')
         nse_stocks = data.get('nse_stocks', [])
         bse_stocks = data.get('bse_stocks', [])
-        sync_data = data.get('sync_data', True)
         
         # Use default dates if not provided
         if not start_date or not end_date:
@@ -129,117 +127,18 @@ def run_strategy():
         master_data = []
         total_combinations = (len(nse_stocks) + len(bse_stocks)) * len(vertical_gaps) * len(horizontal_gaps) * len(continuous_days_list)
         processed = 0
-        
-        # Process NSE stocks
-        for symbol in nse_stocks:
-            exchange = 'NSE'
-            syncing_needed = sync_data
-            
-            for v_gap in vertical_gaps:
-                for h_gap in horizontal_gaps:
-                    for c_days in continuous_days_list:
-                        try:
-                            logger.info(f"Evaluating {symbol} ({exchange}) with v_gap={v_gap}, h_gap={h_gap}, c_days={c_days}")
-                            
-                            points = find_best_points_for_symbol(
-                                symbol=symbol,
-                                exchange=exchange,
-                                vertical_gap=v_gap,
-                                horizontal_gap=h_gap,
-                                continuous_days=c_days,
-                                start_date=start_date,
-                                end_date=end_date,
-                                granularity=granularity,
-                                syncing_needed=syncing_needed
-                            )
-                            
-                            syncing_needed = False  # Only sync once per symbol
-                            
-                            # Decorate and add top points
-                            points = decorate_points(points, {
-                                'exchange': exchange,
-                                'symbol': symbol,
-                                'vertical_gap': v_gap,
-                                'horizontal_gap': h_gap,
-                                'continuous_days': c_days
-                            })
-                            points.sort(key=lambda x: (x['exceed_prob'], x['average']), reverse=True)
-                            master_data.extend(points[:4])  # Keep top 4 per combination
-                            processed += 1
-                            
-                        except Exception as e:
-                            logger.error(f"Error processing {symbol}: {e}")
-                            processed += 1
-                            continue
-        
-        # Process BSE stocks
-        for symbol in bse_stocks:
-            exchange = 'BSE'
-            syncing_needed = sync_data
-            
-            for v_gap in vertical_gaps:
-                for h_gap in horizontal_gaps:
-                    for c_days in continuous_days_list:
-                        try:
-                            logger.info(f"Evaluating {symbol} ({exchange}) with v_gap={v_gap}, h_gap={h_gap}, c_days={c_days}")
-                            
-                            points = find_best_points_for_symbol(
-                                symbol=symbol,
-                                exchange=exchange,
-                                vertical_gap=v_gap,
-                                horizontal_gap=h_gap,
-                                continuous_days=c_days,
-                                start_date=start_date,
-                                end_date=end_date,
-                                granularity=granularity,
-                                syncing_needed=syncing_needed
-                            )
-                            
-                            syncing_needed = False
-                            
-                            points = decorate_points(points, {
-                                'exchange': exchange,
-                                'symbol': symbol,
-                                'vertical_gap': v_gap,
-                                'horizontal_gap': h_gap,
-                                'continuous_days': c_days
-                            })
-                            points.sort(key=lambda x: (x['exceed_prob'], x['average']), reverse=True)
-                            master_data.extend(points[:4])  # Keep top 4 per combination
-                            processed += 1
-                            
-                        except Exception as e:
-                            logger.error(f"Error processing {symbol}: {e}")
-                            processed += 1
-                            continue
-        
-        # Sort by exceed probability
-        master_data.sort(key=lambda x: (x['exceed_prob'], x['average']), reverse=True)
 
-        # Generate unique strategy ID and save to database
-        strategy_id = datetime.now().strftime('%Y%m%d_%H%M%S')
-        
-        try:
-            db_client.insert_strategy_results(master_data, strategy_id)
-            logger.info(f"Saved {len(master_data)} results to database with strategy_id={strategy_id}")
-        except Exception as db_error:
-            logger.error(f"Failed to save results to database: {db_error}")
-            # Continue anyway - results are still available in response
+        strategy_run_id = db_client.create_strategy_run(data)
 
-        # Generate summary statistics
-        summary = generate_summary(strategy_id)
-        
         return jsonify({
             'status': 'success',
-            'strategy_id': strategy_id,
-            'total_results': len(master_data),
-            'top_results': master_data,  # Return top 50
-            'summary': summary
-        })
+            'strategy_run_id': strategy_run_id,
+        }), 200
         
     except Exception as e:
         logger.error(f"Strategy execution error: {e}")
-        return jsonify({'status': 'error', 'error': str(e)}), 500
+        return jsonify({'status': 'failure',
+                     'error': str(e)}), 500
 
 
 def generate_summary(strategy_id: str) -> Dict[str, Any]:
@@ -298,13 +197,14 @@ def generate_summary(strategy_id: str) -> Dict[str, Any]:
 
 
 # ============================================================================
-# DATABASE-BACKED ENDPOINTS FOR PREVIOUS RUNS
+# PREVIOUS RUNS
 # ============================================================================
 
 @app.route('/api/runs', methods=['GET'])
 def get_strategy_runs():
     """
     Get list of previous strategy runs with pagination.
+    For completed runs, includes summary info.
     
     Query params:
         - limit: Number of runs per page (default: 20)
@@ -315,46 +215,26 @@ def get_strategy_runs():
         offset = request.args.get('offset', 0, type=int)
         
         result = db_client.get_strategy_runs(limit=limit, offset=offset)
+        
+        # For completed runs, add summary info
+        for run in result.get('runs', []):
+            if run.get('status') == 'completed' and run.get('result_count', 0) > 0:
+                try:
+                    # Get quick summary stats
+                    summary = generate_summary(run['id'])
+                    run['summary'] = {
+                        'total_symbols': summary.get('total_symbols', 0),
+                        'top_symbol': summary['symbol_scores'][0]['symbol'] if summary.get('symbol_scores') else None,
+                        'top_exceed_prob': summary['symbol_scores'][0]['exceed_prob'] if summary.get('symbol_scores') else None,
+                        'top_exchange': summary['symbol_scores'][0]['exchange'] if summary.get('symbol_scores') else None,
+                    }
+                except Exception as e:
+                    logger.warning(f"Could not generate summary for run {run['id']}: {e}")
+                    run['summary'] = None
+        
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error fetching strategy runs: {e}")
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/api/runs/<strategy_id>', methods=['GET'])
-def get_run_details(strategy_id):
-    """
-    Get details and results for a specific strategy run with pagination.
-    
-    Query params:
-        - page: Page number (default: 1)
-        - per_page: Results per page (default: 50)
-        - stock: Filter by stock symbol (optional)
-        - exchange: Filter by exchange (optional)
-        - sort_by: Field to sort by (default: exceed_prob)
-        - sort_order: 'asc' or 'desc' (default: desc)
-    """
-    try:
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 50, type=int)
-        stock = request.args.get('stock')
-        exchange = request.args.get('exchange')
-        sort_by = request.args.get('sort_by', 'exceed_prob')
-        sort_order = request.args.get('sort_order', 'desc')
-        
-        results = db_client.get_strategy_results(
-            strategy_id=strategy_id,
-            page=page,
-            per_page=per_page,
-            stock=stock,
-            exchange=exchange,
-            sort_by=sort_by,
-            sort_order=sort_order
-        )
-        
-        return jsonify(results)
-    except Exception as e:
-        logger.error(f"Error fetching run details: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -362,77 +242,13 @@ def get_run_details(strategy_id):
 def get_run_summary(strategy_id):
     """
     Get summary statistics for a specific strategy run.
+    Returns the same format as generate_summary for consistency.
     """
     try:
-        summary = db_client.get_strategy_summary(strategy_id)
+        summary = generate_summary(strategy_id)
         return jsonify(summary)
     except Exception as e:
         logger.error(f"Error fetching run summary: {e}")
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/api/runs/<strategy_id>/best-per-stock', methods=['GET'])
-def get_best_per_stock(strategy_id):
-    """
-    Get the best result for each stock/exchange pair.
-    Returns at most one entry per unique stock+exchange combination.
-    
-    Query params:
-        - top_n: Number of best results per stock/exchange (default: 1)
-    """
-    try:
-        top_n = request.args.get('top_n', 1, type=int)
-        results = db_client.get_best_per_stock_exchange(strategy_id, top_n=top_n)
-        return jsonify({
-            'results': results,
-            'total': len(results)
-        })
-    except Exception as e:
-        logger.error(f"Error fetching best per stock: {e}")
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/api/runs/<strategy_id>/stock/<stock>', methods=['GET'])
-def get_stock_configs(strategy_id, stock):
-    """
-    Get top 4 configurations for a specific stock.
-    
-    Query params:
-        - exchange: Filter by exchange (optional)
-        - top_n: Number of top configs to return (default: 4)
-    """
-    try:
-        exchange = request.args.get('exchange')
-        top_n = request.args.get('top_n', 4, type=int)
-        
-        results = db_client.get_top_configs_per_stock(
-            strategy_id=strategy_id,
-            stock=stock,
-            exchange=exchange,
-            top_n=top_n
-        )
-        
-        return jsonify({
-            'stock': stock,
-            'exchange': exchange,
-            'configs': results,
-            'total': len(results)
-        })
-    except Exception as e:
-        logger.error(f"Error fetching stock configs: {e}")
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/api/runs/<strategy_id>/stocks', methods=['GET'])
-def get_run_stocks(strategy_id):
-    """
-    Get list of unique stocks from a strategy run.
-    """
-    try:
-        stocks = db_client.get_unique_stocks(strategy_id)
-        return jsonify({'stocks': stocks})
-    except Exception as e:
-        logger.error(f"Error fetching stocks: {e}")
         return jsonify({'error': str(e)}), 500
 
 

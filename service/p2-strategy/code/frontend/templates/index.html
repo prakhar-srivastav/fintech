@@ -384,6 +384,49 @@
             border-radius: 15px;
             font-size: 0.85rem;
         }
+        .run-item .run-config {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+        .run-item .run-status-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+        .run-item .run-status {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+        .run-item.disabled-run {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .run-item.disabled-run:hover {
+            transform: none;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .run-summary-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: rgba(102, 126, 234, 0.15);
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .run-summary-preview .summary-item {
+            color: #ccc;
+        }
+        .run-summary-preview .summary-item strong {
+            color: #fff;
+        }
+        .run-status-message {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            font-style: italic;
+        }
         
         /* Pagination */
         .pagination {
@@ -688,8 +731,8 @@
 
         <!-- Tab Navigation -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('run-strategy')">🚀 Run Strategy</button>
-            <button class="tab-btn" onclick="switchTab('previous-runs')">📊 Previous Runs</button>
+            <button class="tab-btn active" data-tab="run-strategy" onclick="switchTab('run-strategy', this)">🚀 Schedule Strategy</button>
+            <button class="tab-btn" data-tab="previous-runs" onclick="switchTab('previous-runs', this)">📊 All Runs</button>
         </div>
 
         <!-- Run Strategy Tab -->
@@ -814,7 +857,7 @@
         <!-- Loading Indicator -->
         <div class="loading hidden" id="loadingIndicator">
             <div class="spinner"></div>
-            <p>Running strategy analysis... This may take a few minutes.</p>
+            <p>Scheduling strategy job... Please wait.</p>
         </div>
 
         <!-- Results Section -->
@@ -856,14 +899,19 @@
 
         </div> <!-- End of run-strategy-tab -->
 
-        <!-- Previous Runs Tab -->
+        </div>
+
+         <!-- Previous Runs Tab -->
         <div id="previous-runs-tab" class="tab-content">
             <!-- Runs List View -->
             <div id="runsListView">
                 <div class="card">
-                    <h2>📊 Previous Strategy Runs</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h2>📊 Previous Strategy Runs</h2>
+                        <button class="btn btn-secondary" onclick="loadRuns(currentRunsPage)" style="margin: 0;">🔄 Refresh</button>
+                    </div>
                     <div class="runs-list" id="runsList">
-                        <!-- Populated dynamically -->
+                        <p style="text-align: center; color: #888; padding: 40px;">Click "Refresh" or wait for runs to load...</p>
                     </div>
                     <div class="pagination" id="runsPagination">
                         <button onclick="loadRuns(currentRunsPage - 1)" id="runsPrevBtn">← Previous</button>
@@ -887,81 +935,33 @@
                     </div>
                 </div>
 
-                <!-- Best Per Stock/Exchange Table -->
+                <!-- Symbol Scores with Configs (Same as Run Strategy results) -->
                 <div class="card">
-                    <h2>🏆 Best Result per Stock/Exchange</h2>
-                    <p style="color: #888; margin-bottom: 15px;">Click on a stock to see top 4 configurations</p>
+                    <h2>🏆 Stock Results by Max Exceed Probability</h2>
+                    <p style="color: #888; margin-bottom: 15px;">Click on a stock row to expand and see all configurations with percentile profit values</p>
                     <div class="table-container">
-                        <table class="results-table" id="bestPerStockTable">
+                        <table class="results-table" id="runSymbolScoresTable">
                             <thead>
                                 <tr>
-                                    <th>Stock</th>
+                                    <th style="width: 50px;">Rank</th>
+                                    <th>Symbol</th>
                                     <th>Exchange</th>
-                                    <th>Exceed Prob</th>
+                                    <th>Max Exceed Prob</th>
                                     <th>Avg Return</th>
-                                    <th>V-Gap</th>
-                                    <th>H-Gap</th>
-                                    <th>C-Days</th>
-                                    <th>X→Y Points</th>
+                                    <th>P5</th>
+                                    <th>P10</th>
+                                    <th>P50</th>
+                                    <th>Best Config</th>
+                                    <th style="width: 80px;">Configs</th>
                                 </tr>
                             </thead>
-                            <tbody id="bestPerStockBody">
+                            <tbody id="runSymbolScoresBody">
                                 <!-- Populated dynamically -->
                             </tbody>
                         </table>
-                    </div>
-                </div>
-
-                <!-- All Results with Pagination -->
-                <div class="card">
-                    <h2>📋 All Results</h2>
-                    <div class="filter-controls">
-                        <select id="filterStock" onchange="filterRunResults()">
-                            <option value="">All Stocks</option>
-                        </select>
-                        <select id="filterExchange" onchange="filterRunResults()">
-                            <option value="">All Exchanges</option>
-                            <option value="NSE">NSE</option>
-                            <option value="BSE">BSE</option>
-                        </select>
-                        <select id="sortBy" onchange="filterRunResults()">
-                            <option value="exceed_prob">Sort by Exceed Prob</option>
-                            <option value="average">Sort by Average Return</option>
-                            <option value="stock">Sort by Stock</option>
-                        </select>
-                        <select id="sortOrder" onchange="filterRunResults()">
-                            <option value="desc">Descending</option>
-                            <option value="asc">Ascending</option>
-                        </select>
-                    </div>
-                    <div class="table-container">
-                        <table class="results-table" id="runResultsTable">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Stock</th>
-                                    <th>Exchange</th>
-                                    <th>Exceed Prob</th>
-                                    <th>Avg Return</th>
-                                    <th>V-Gap</th>
-                                    <th>H-Gap</th>
-                                    <th>C-Days</th>
-                                    <th>X→Y Points</th>
-                                </tr>
-                            </thead>
-                            <tbody id="runResultsBody">
-                                <!-- Populated dynamically -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="pagination" id="resultsPagination">
-                        <button onclick="loadRunResults(currentResultsPage - 1)" id="resultsPrevBtn">← Previous</button>
-                        <span class="page-info" id="resultsPageInfo">Page 1</span>
-                        <button onclick="loadRunResults(currentResultsPage + 1)" id="resultsNextBtn">Next →</button>
                     </div>
                 </div>
             </div>
-        </div>
 
         <!-- Top Configs Modal -->
         <div class="modal-overlay" id="configsModal">
@@ -1014,8 +1014,20 @@
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== PAGE LOADED ===');
+            console.log('Previous runs tab exists:', !!document.getElementById('previous-runs-tab'));
+            console.log('runsList exists:', !!document.getElementById('runsList'));
             loadConfig();
             setDefaultDates();
+            
+            // Test API call on page load for debugging
+            console.log('Testing API call...');
+            fetch('/api/runs?limit=2')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('API test successful, runs:', data.runs ? data.runs.length : 0);
+                })
+                .catch(err => console.error('API test failed:', err));
         });
 
         async function loadConfig() {
@@ -1023,8 +1035,12 @@
                 const response = await fetch('/api/config');
                 const data = await response.json();
                 
-                availableStocks.nse = data.available_nse_stocks || {};
-                availableStocks.bse = data.available_bse_stocks || {};
+                availableStocks.nse = Array.isArray(data.available_nse_stocks) 
+                    ? data.available_nse_stocks.reduce((acc, stock) => ({ ...acc, [stock]: stock }), {})
+                    : data.available_nse_stocks || {};
+                availableStocks.bse = Array.isArray(data.available_bse_stocks)
+                    ? data.available_bse_stocks.reduce((acc, stock) => ({ ...acc, [stock]: stock }), {})
+                    : data.available_bse_stocks || {};
                 
                 // Set default dates
                 document.getElementById('startDate').value = data.start_date;
@@ -1161,7 +1177,7 @@
             hideResults();
             
             try {
-                const response = await fetch('/api/run-strategy', {
+                const response = await fetch('/api/schedule-strategy', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -1169,14 +1185,17 @@
                 
                 const result = await response.json();
                 
-                if (result.status === 'error') {
-                    showError(result.error);
+                if (result.status === 'failure' || result.error) {
+                    showError(result.error || 'Failed to schedule strategy');
                 } else {
-                    showSuccess(`Strategy completed! Found ${result.total_results} results.`);
-                    displayResults(result);
+                    showSuccess(`Strategy scheduled successfully! Job ID: ${result.strategy_scheduler_id}. Check "All Runs" tab for results once processing completes.`);
+                    // Switch to the All Runs tab after a short delay
+                    setTimeout(() => {
+                        document.querySelector('.tab-btn:nth-child(2)').click();
+                    }, 2000);
                 }
             } catch (error) {
-                showError('Error running strategy: ' + error.message);
+                showError('Error scheduling strategy: ' + error.message);
             } finally {
                 showLoading(false);
             }
@@ -1341,17 +1360,39 @@
         // TAB NAVIGATION
         // ============================================================================
         
-        function switchTab(tabName) {
+        function switchTab(tabName, clickedBtn) {
+            console.log('=== SWITCHING TAB ===');
+            console.log('Target tab:', tabName);
+            
             // Update tab buttons
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+            }
             
             // Update tab content
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(tabName + '-tab').classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            const tabContent = document.getElementById(tabName + '-tab');
+            if (tabContent) {
+                tabContent.classList.add('active');
+                console.log('Tab content activated:', tabName + '-tab');
+            } else {
+                console.error('Tab content not found:', tabName + '-tab');
+                alert('ERROR: Tab content not found: ' + tabName + '-tab');
+                return;
+            }
             
             // Load previous runs if switching to that tab
             if (tabName === 'previous-runs') {
+                console.log('Loading runs for previous-runs tab...');
+                // Direct inline test
+                const container = document.getElementById('runsList');
+                if (container) {
+                    container.innerHTML = '<p style="color: #4ade80; padding: 20px; text-align: center;">Tab switched successfully! Loading data...</p>';
+                }
                 loadRuns(1);
             }
         }
@@ -1367,52 +1408,168 @@
         let selectedStrategyId = null;
 
         async function loadRuns(page = 1) {
-            if (page < 1) return;
+            console.log('=== LOAD RUNS CALLED ===');
+            console.log('Page:', page);
+            
+            // Update debug info
+            const debugEl = document.getElementById('debugInfo');
+            if (debugEl) debugEl.textContent = 'Debug: loadRuns called with page=' + page;
+            
+            if (page < 1) {
+                console.log('Invalid page number, returning');
+                if (debugEl) debugEl.textContent = 'Debug: Invalid page number';
+                return;
+            }
+            
+            const container = document.getElementById('runsList');
+            if (!container) {
+                console.error('ERROR: runsList container not found!');
+                if (debugEl) debugEl.textContent = 'Debug ERROR: runsList container not found!';
+                return;
+            }
+            
+            // Show loading state
+            container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner"></div><p style="color: #888; margin-top: 10px;">Loading runs...</p></div>';
+            if (debugEl) debugEl.textContent = 'Debug: Fetching from API...';
             
             try {
                 const limit = 10;
                 const offset = (page - 1) * limit;
-                const response = await fetch(`/api/runs?limit=${limit}&offset=${offset}`);
+                const url = '/api/runs?limit=' + limit + '&offset=' + offset;
+                console.log('Fetching URL:', url);
+                
+                const response = await fetch(url);
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+                
                 const data = await response.json();
+                console.log('API response data:', data);
+                if (debugEl) debugEl.textContent = 'Debug: Got ' + (data.runs ? data.runs.length : 0) + ' runs from API';
                 
                 if (data.error) {
-                    showError(data.error);
+                    console.error('API error:', data.error);
+                    container.innerHTML = '<p style="text-align: center; color: #f87171; padding: 40px;">Error: ' + data.error + '</p>';
+                    if (debugEl) debugEl.textContent = 'Debug ERROR: ' + data.error;
                     return;
                 }
                 
                 currentRunsPage = page;
-                totalRunsPages = Math.ceil(data.total / limit);
+                totalRunsPages = Math.ceil((data.total || 0) / limit) || 1;
                 
-                renderRunsList(data.runs);
+                // Render the runs list
+                renderRunsList(data.runs || []);
                 updateRunsPagination();
+                
+                if (debugEl) debugEl.textContent = 'Debug: Rendered ' + (data.runs ? data.runs.length : 0) + ' runs successfully';
+                console.log('=== LOAD RUNS COMPLETE ===');
+                
             } catch (error) {
-                showError('Error loading runs: ' + error.message);
+                console.error('Error loading runs:', error);
+                container.innerHTML = '<p style="text-align: center; color: #f87171; padding: 40px;">Error loading runs: ' + error.message + '</p>';
+                if (debugEl) debugEl.textContent = 'Debug CATCH ERROR: ' + error.message;
             }
         }
 
         function renderRunsList(runs) {
-            const container = document.getElementById('runsList');
+            console.log('=== RENDER RUNS LIST ===');
+            console.log('Runs received:', runs);
             
-            if (!runs || runs.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;">No previous runs found. Run a strategy to see results here.</p>';
+            const container = document.getElementById('runsList');
+            if (!container) {
+                console.error('ERROR: runsList container not found in renderRunsList!');
                 return;
             }
             
-            container.innerHTML = runs.map(run => `
-                <div class="run-item" onclick="viewRunDetails('${run.id}')">
-                    <div class="run-info">
-                        <span class="run-id">Strategy ID: ${run.id}</span>
-                        <span class="run-date">📅 ${run.when_added}</span>
-                    </div>
-                    <span class="run-count">${run.result_count} results</span>
-                </div>
-            `).join('');
+            if (!runs || runs.length === 0) {
+                console.log('No runs to display');
+                container.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;">No previous runs found. Schedule a strategy to see results here.</p>';
+                return;
+            }
+            
+            console.log('Building HTML for', runs.length, 'runs');
+            let html = '';
+            
+            for (let i = 0; i < runs.length; i++) {
+                const run = runs[i];
+                console.log('Processing run', i, ':', run);
+                
+                const statusColor = run.status === 'completed' ? '#4ade80' : 
+                                   run.status === 'running' ? '#fbbf24' : 
+                                   run.status === 'failed' ? '#f87171' : '#888';
+                const statusIcon = run.status === 'completed' ? '✅' : 
+                                  run.status === 'running' ? '⏳' : 
+                                  run.status === 'failed' ? '❌' : '📋';
+                
+                // Parse config if available
+                let configSummary = '';
+                try {
+                    if (run.config) {
+                        const cfg = typeof run.config === 'string' ? JSON.parse(run.config) : run.config;
+                        const nseCount = (cfg.nse_stocks && cfg.nse_stocks.length) || 0;
+                        const bseCount = (cfg.bse_stocks && cfg.bse_stocks.length) || 0;
+                        configSummary = (nseCount + bseCount) + ' stocks | ' + (cfg.granularity || '3minute');
+                    }
+                } catch (e) {
+                    console.warn('Error parsing config for run', run.id, ':', e);
+                }
+                
+                // Build summary section for completed runs
+                let summaryHtml = '';
+                if (run.status === 'completed' && run.summary) {
+                    const topProb = run.summary.top_exceed_prob ? (run.summary.top_exceed_prob * 100).toFixed(1) + '%' : '-';
+                    summaryHtml = '<div class="run-summary-preview">' +
+                        '<span class="summary-item">🏆 Best: <strong>' + (run.summary.top_symbol || '-') + '</strong> (' + (run.summary.top_exchange || '') + ')</span>' +
+                        '<span class="summary-item">📈 Top Prob: <strong>' + topProb + '</strong></span>' +
+                        '<span class="summary-item">📊 Symbols: <strong>' + (run.summary.total_symbols || 0) + '</strong></span>' +
+                        '</div>';
+                } else if (run.status !== 'completed') {
+                    let statusMsg = 'Unknown status';
+                    if (run.status === 'running') statusMsg = 'Strategy is currently being processed...';
+                    else if (run.status === 'queued') statusMsg = 'Waiting in queue to be processed...';
+                    else if (run.status === 'failed') statusMsg = 'Strategy execution failed';
+                    
+                    summaryHtml = '<div class="run-status-message" style="color: ' + statusColor + ';">' + statusMsg + '</div>';
+                }
+                
+                const onclickAttr = run.status === 'completed' ? ' onclick="viewRunDetails(' + run.id + ')"' : '';
+                const disabledClass = run.status !== 'completed' ? ' disabled-run' : '';
+                
+                html += '<div class="run-item' + disabledClass + '"' + onclickAttr + '>' +
+                    '<div class="run-info">' +
+                        '<span class="run-id">' + statusIcon + ' Run #' + run.id + '</span>' +
+                        '<span class="run-date">📅 ' + (run.when_added || 'Unknown date') + '</span>' +
+                        (configSummary ? '<span class="run-config">⚙️ ' + configSummary + '</span>' : '') +
+                        summaryHtml +
+                    '</div>' +
+                    '<div class="run-status-info">' +
+                        '<span class="run-status" style="color: ' + statusColor + '; font-weight: 600;">' + (run.status ? run.status.toUpperCase() : 'UNKNOWN') + '</span>' +
+                        '<span class="run-count">' + (run.result_count || 0) + ' results</span>' +
+                    '</div>' +
+                '</div>';
+            }
+            
+            console.log('Setting innerHTML, length:', html.length);
+            container.innerHTML = html;
+            console.log('=== RENDER COMPLETE ===');
         }
 
         function updateRunsPagination() {
-            document.getElementById('runsPageInfo').textContent = `Page ${currentRunsPage} of ${totalRunsPages}`;
-            document.getElementById('runsPrevBtn').disabled = currentRunsPage <= 1;
-            document.getElementById('runsNextBtn').disabled = currentRunsPage >= totalRunsPages;
+            try {
+                const pageInfo = document.getElementById('runsPageInfo');
+                const prevBtn = document.getElementById('runsPrevBtn');
+                const nextBtn = document.getElementById('runsNextBtn');
+                
+                if (pageInfo) pageInfo.textContent = 'Page ' + currentRunsPage + ' of ' + totalRunsPages;
+                if (prevBtn) prevBtn.disabled = currentRunsPage <= 1;
+                if (nextBtn) nextBtn.disabled = currentRunsPage >= totalRunsPages;
+                
+                console.log('Pagination updated: page', currentRunsPage, 'of', totalRunsPages);
+            } catch (e) {
+                console.warn('Error updating pagination:', e);
+            }
         }
 
         async function viewRunDetails(strategyId) {
@@ -1423,13 +1580,8 @@
             document.getElementById('runsListView').classList.add('hidden');
             document.getElementById('runDetailsView').classList.remove('hidden');
             
-            // Load run data
-            await Promise.all([
-                loadRunSummary(strategyId),
-                loadBestPerStock(strategyId),
-                loadRunResults(1),
-                loadStockFilter(strategyId)
-            ]);
+            // Load run summary (same format as generate_summary)
+            await loadRunSummary(strategyId);
         }
 
         function showRunsList() {
@@ -1443,180 +1595,138 @@
                 const response = await fetch(`/api/runs/${strategyId}/summary`);
                 const summary = await response.json();
                 
+                if (summary.error) {
+                    showError(summary.error);
+                    return;
+                }
+                
+                const symbolScores = summary.symbol_scores || [];
+                const bestSymbol = symbolScores.length > 0 ? symbolScores[0] : null;
+                
+                // Update summary stats
                 document.getElementById('runSummaryStats').innerHTML = `
                     <div class="stat-card">
-                        <div class="value">${summary.total_results || 0}</div>
+                        <div class="value">${symbolScores.reduce((sum, s) => sum + (s.total_configs || 0), 0)}</div>
                         <div class="label">Total Results</div>
                     </div>
                     <div class="stat-card">
-                        <div class="value">${summary.unique_symbols || 0}</div>
+                        <div class="value">${summary.total_symbols || 0}</div>
                         <div class="label">Symbols Analyzed</div>
                     </div>
                     <div class="stat-card">
-                        <div class="value">${((summary.max_exceed_prob || 0) * 100).toFixed(1)}%</div>
+                        <div class="value">${bestSymbol ? (bestSymbol.exceed_prob * 100).toFixed(1) + '%' : '-'}</div>
                         <div class="label">Best Exceed Prob</div>
                     </div>
                     <div class="stat-card">
-                        <div class="value">${summary.best_overall?.symbol || '-'}</div>
+                        <div class="value">${bestSymbol ? bestSymbol.symbol : '-'}</div>
                         <div class="label">Top Symbol</div>
                     </div>
                 `;
+                
+                // Render symbol scores table (same as Run Strategy results)
+                renderRunSymbolScoresTable(symbolScores);
+                
             } catch (error) {
                 console.error('Error loading summary:', error);
+                showError('Error loading run summary: ' + error.message);
             }
         }
 
-        async function loadBestPerStock(strategyId) {
-            try {
-                const response = await fetch(`/api/runs/${strategyId}/best-per-stock`);
-                const data = await response.json();
-                
-                const tbody = document.getElementById('bestPerStockBody');
-                tbody.innerHTML = data.results.map(item => `
-                    <tr>
-                        <td>
-                            <button class="stock-btn" onclick="showTopConfigs('${item.stock}', '${item.exchange}')">
-                                ${item.stock}
-                            </button>
-                        </td>
-                        <td>${item.exchange}</td>
+        function renderRunSymbolScoresTable(symbolScores) {
+            const tbody = document.getElementById('runSymbolScoresBody');
+            
+            tbody.innerHTML = symbolScores.map((item, index) => {
+                const configsHtml = renderRunConfigCards(item.configs || [], index, item.symbol);
+                return `
+                    <tr class="expandable-row" onclick="toggleRunConfigDetails(${index})">
+                        <td>${index + 1}</td>
+                        <td><strong>${item.symbol}</strong></td>
+                        <td>${item.exchange || '-'}</td>
                         <td>
                             <div class="prob-bar">
                                 <div class="prob-bar-fill" style="width: ${(item.exceed_prob * 100)}%"></div>
                             </div>
-                            ${(item.exceed_prob * 100).toFixed(1)}%
+                            <strong>${(item.exceed_prob * 100).toFixed(2)}%</strong>
                         </td>
                         <td>${item.average?.toFixed(2) || '-'}</td>
-                        <td>${item.vertical_gap}</td>
-                        <td>${item.horizontal_gap}</td>
-                        <td>${item.continuous_days}</td>
-                        <td>${item.x} → ${item.y}</td>
+                        <td class="percentile-value p5">${item.p5 !== null && item.p5 !== undefined ? item.p5.toFixed(2) : '-'}</td>
+                        <td class="percentile-value p10">${item.p10 !== null && item.p10 !== undefined ? item.p10.toFixed(2) : '-'}</td>
+                        <td class="percentile-value">${item.p50 !== null && item.p50 !== undefined ? item.p50.toFixed(2) : '-'}</td>
+                        <td style="font-size: 0.8rem; color: #aaa;">
+                            V:${item.vertical_gap} H:${item.horizontal_gap} D:${item.continuous_days}
+                        </td>
+                        <td><span class="config-count-badge">${item.total_configs || 0}</span></td>
                     </tr>
-                `).join('');
-            } catch (error) {
-                console.error('Error loading best per stock:', error);
-            }
+                    <tr class="config-details-row" id="run-config-details-${index}">
+                        <td colspan="10">
+                            <div class="config-details-content">
+                                <h4>📊 All Configurations for ${item.symbol} (${item.exchange})</h4>
+                                <div class="config-cards">
+                                    ${configsHtml}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
-        async function loadStockFilter(strategyId) {
-            try {
-                const response = await fetch(`/api/runs/${strategyId}/stocks`);
-                const data = await response.json();
-                
-                const select = document.getElementById('filterStock');
-                select.innerHTML = '<option value="">All Stocks</option>' + 
-                    data.stocks.map(s => `<option value="${s.stock}">${s.stock} (${s.exchange})</option>`).join('');
-            } catch (error) {
-                console.error('Error loading stocks:', error);
+        function renderRunConfigCards(configs, symbolIndex, symbolName) {
+            if (!configs || configs.length === 0) {
+                return '<p style="color: #888;">No configurations available</p>';
             }
-        }
-
-        async function loadRunResults(page = 1) {
-            if (!selectedStrategyId || page < 1) return;
             
-            try {
-                const perPage = 25;
-                const stock = document.getElementById('filterStock').value;
-                const exchange = document.getElementById('filterExchange').value;
-                const sortBy = document.getElementById('sortBy').value;
-                const sortOrder = document.getElementById('sortOrder').value;
+            return configs.map((config, idx) => {
+                const isBest = idx === 0;
+                const formatVal = (val) => val !== null && val !== undefined ? parseFloat(val).toFixed(2) : '-';
                 
-                let url = `/api/runs/${selectedStrategyId}?page=${page}&per_page=${perPage}`;
-                url += `&sort_by=${sortBy}&sort_order=${sortOrder}`;
-                if (stock) url += `&stock=${stock}`;
-                if (exchange) url += `&exchange=${exchange}`;
-                
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                currentResultsPage = data.pagination.page;
-                totalResultsPages = data.pagination.total_pages;
-                
-                renderRunResultsTable(data.results);
-                updateResultsPagination();
-            } catch (error) {
-                console.error('Error loading results:', error);
-            }
-        }
-
-        function renderRunResultsTable(results) {
-            const tbody = document.getElementById('runResultsBody');
-            const startIdx = (currentResultsPage - 1) * 25;
-            
-            tbody.innerHTML = results.map((item, index) => `
-                <tr>
-                    <td>${startIdx + index + 1}</td>
-                    <td>
-                        <button class="stock-btn" onclick="showTopConfigs('${item.stock}', '${item.exchange}')">
-                            ${item.stock}
-                        </button>
-                    </td>
-                    <td>${item.exchange}</td>
-                    <td>
-                        <div class="prob-bar">
-                            <div class="prob-bar-fill" style="width: ${(item.exceed_prob * 100)}%"></div>
+                return `
+                    <div class="config-card ${isBest ? 'best' : ''}">
+                        <div class="config-header">
+                            <span class="config-prob">${((config.exceed_prob || 0) * 100).toFixed(2)}%</span>
+                            <span class="config-badge">${isBest ? '🏆 BEST' : '#' + (idx + 1)}</span>
                         </div>
-                        ${(item.exceed_prob * 100).toFixed(1)}%
-                    </td>
-                    <td>${item.average?.toFixed(2) || '-'}</td>
-                    <td>${item.vertical_gap}</td>
-                    <td>${item.horizontal_gap}</td>
-                    <td>${item.continuous_days}</td>
-                    <td>${item.x} → ${item.y}</td>
-                </tr>
-            `).join('');
-        }
-
-        function updateResultsPagination() {
-            document.getElementById('resultsPageInfo').textContent = `Page ${currentResultsPage} of ${totalResultsPages}`;
-            document.getElementById('resultsPrevBtn').disabled = currentResultsPage <= 1;
-            document.getElementById('resultsNextBtn').disabled = currentResultsPage >= totalResultsPages;
-        }
-
-        function filterRunResults() {
-            loadRunResults(1);
-        }
-
-        // ============================================================================
-        // TOP CONFIGS MODAL
-        // ============================================================================
-
-        async function showTopConfigs(stock, exchange) {
-            if (!selectedStrategyId) return;
-            
-            try {
-                let url = `/api/runs/${selectedStrategyId}/stock/${stock}?top_n=4`;
-                if (exchange) url += `&exchange=${exchange}`;
-                
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                document.getElementById('modalTitle').textContent = `Top 4 Configurations for ${stock} (${exchange})`;
-                
-                const tbody = document.getElementById('configsBody');
-                tbody.innerHTML = data.configs.map((item, index) => `
-                    <tr>
-                        <td><strong>#${index + 1}</strong></td>
-                        <td>
-                            <div class="prob-bar">
-                                <div class="prob-bar-fill" style="width: ${(item.exceed_prob * 100)}%"></div>
+                        <div class="config-details">
+                            <span><span class="label">V-Gap:</span> <span class="value">${config.vertical_gap}</span></span>
+                            <span><span class="label">H-Gap:</span> <span class="value">${config.horizontal_gap}</span></span>
+                            <span><span class="label">C-Days:</span> <span class="value">${config.continuous_days}</span></span>
+                            <span><span class="label">Avg:</span> <span class="value">${config.average?.toFixed(2) || '-'}</span></span>
+                            <span><span class="label">X→Y:</span> <span class="value">${config.x} → ${config.y}</span></span>
+                            <span><span class="label">Exchange:</span> <span class="value">${config.exchange || '-'}</span></span>
+                        </div>
+                        <div class="percentile-section">
+                            <div class="percentile-item">
+                                <span class="percentile-label">P5</span>
+                                <span class="percentile-val p5">${formatVal(config.p5)}</span>
                             </div>
-                            ${(item.exceed_prob * 100).toFixed(1)}%
-                        </td>
-                        <td>${item.average?.toFixed(2) || '-'}</td>
-                        <td>${item.vertical_gap}</td>
-                        <td>${item.horizontal_gap}</td>
-                        <td>${item.continuous_days}</td>
-                        <td>${item.x} → ${item.y}</td>
-                        <td>${item.profit_days || '-'}</td>
-                    </tr>
-                `).join('');
-                
-                document.getElementById('configsModal').classList.add('active');
-            } catch (error) {
-                console.error('Error loading top configs:', error);
-                showError('Error loading top configurations');
-            }
+                            <div class="percentile-item">
+                                <span class="percentile-label">P10</span>
+                                <span class="percentile-val p10">${formatVal(config.p10)}</span>
+                            </div>
+                            <div class="percentile-item">
+                                <span class="percentile-label">P20</span>
+                                <span class="percentile-val p20">${formatVal(config.p20)}</span>
+                            </div>
+                            <div class="percentile-item">
+                                <span class="percentile-label">P40</span>
+                                <span class="percentile-val p40">${formatVal(config.p40)}</span>
+                            </div>
+                            <div class="percentile-item">
+                                <span class="percentile-label">P50</span>
+                                <span class="percentile-val">${formatVal(config.p50)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleRunConfigDetails(index) {
+            const row = document.getElementById(`run-config-details-${index}`);
+            const expandableRow = row.previousElementSibling;
+            
+            row.classList.toggle('show');
+            expandableRow.classList.toggle('expanded');
         }
 
         function closeConfigsModal() {
