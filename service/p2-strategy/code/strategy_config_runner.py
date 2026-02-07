@@ -466,6 +466,8 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> 
     """
     logger.info(f"Processing strategy scheduler job with config: {config}")
     
+    data_ingester_client = DataIngesterClient(base_url=DATA_INGESTER_URL, timeout=120)
+
     # Extract configuration with defaults
     vertical_gaps = config.get('vertical_gaps', [0.5, 1, 2])
     horizontal_gaps = config.get('horizontal_gaps', [2])
@@ -474,7 +476,7 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> 
     start_date = config.get('start_date')
     end_date = config.get('end_date')
     nse_stocks = config.get('nse_stocks', data_ingester_client.get_symbols(exchange='NSE'))
-    bse_stocks = config.get('bse_stocks', data_ingester_client.get_symbols(exchange='BSE'))
+    bse_stocks = config.get('bse_stocks', [])
 
     # Use default dates if not provided
     if not start_date or not end_date:
