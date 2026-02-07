@@ -776,22 +776,17 @@ class DBClient:
         
         count_query = "SELECT COUNT(*) as total FROM strategy_executions"
         
-        # Query to calculate total profit for an execution
-        profit_query = """
+        # Simple query to fetch raw buy/sell task output data for profit calculation
+        profit_data_query = """
         SELECT 
-            COALESCE(SUM(
-                CASE 
-                    WHEN sell_task.total_amount IS NOT NULL AND buy_task.total_amount IS NOT NULL 
-                    THEN sell_task.total_amount - buy_task.total_amount 
-                    ELSE 0 
-                END
-            ), 0) as total_profit
+            t.order_type,
+            t.day_of_execution,
+            t.status as task_status,
+            o.total_amount
         FROM strategy_execution_details sed
-        JOIN strategy_execution_tasks buy_t ON buy_t.execution_detail_id = sed.id AND buy_t.order_type = 'buy' AND buy_t.status = 'completed'
-        JOIN strategy_execution_tasks sell_t ON sell_t.execution_detail_id = sed.id AND sell_t.order_type = 'sell' AND sell_t.status = 'completed' AND sell_t.day_of_execution = buy_t.day_of_execution
-        LEFT JOIN strategy_execution_tasks_output buy_task ON buy_task.task_id = buy_t.id
-        LEFT JOIN strategy_execution_tasks_output sell_task ON sell_task.task_id = sell_t.id
-        WHERE sed.execution_id = %s
+        JOIN strategy_execution_tasks t ON t.execution_detail_id = sed.id
+        LEFT JOIN strategy_execution_tasks_output o ON o.task_id = t.id
+        WHERE sed.execution_id = %s AND t.status = 'completed'
         """
         
         with self.get_connection() as conn:
@@ -821,11 +816,31 @@ class DBClient:
                     except:
                         pass
                 
-                # Calculate total profit for this execution
+                # Calculate total profit for this execution using Python
                 try:
-                    cursor.execute(profit_query, (row['id'],))
-                    profit_result = cursor.fetchone()
-                    row['total_profit'] = float(profit_result['total_profit']) if profit_result and profit_result['total_profit'] else 0
+                    cursor.execute(profit_data_query, (row['id'],))
+                    task_outputs = cursor.fetchall()
+                    
+                    # Group by day_of_execution and calculate profit per day
+                    day_data = {}
+                    for task in task_outputs:
+                        day = task['day_of_execution']
+                        if day not in day_data:
+                            day_data[day] = {'buy': 0, 'sell': 0}
+                        
+                        amount = float(task['total_amount']) if task['total_amount'] else 0
+                        if task['order_type'] == 'buy':
+                            day_data[day]['buy'] += amount
+                        elif task['order_type'] == 'sell':
+                            day_data[day]['sell'] += amount
+                    
+                    # Calculate total profit (sum of sell - buy for days with both)
+                    total_profit = 0
+                    for day, amounts in day_data.items():
+                        if amounts['buy'] > 0 and amounts['sell'] > 0:
+                            total_profit += amounts['sell'] - amounts['buy']
+                    
+                    row['total_profit'] = total_profit
                 except Exception as e:
                     logger.warning(f"Could not calculate profit for execution {row['id']}: {e}")
                     row['total_profit'] = 0

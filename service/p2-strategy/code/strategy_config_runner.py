@@ -122,6 +122,7 @@ def find_best_points(day_data: Dict[str, List[Dict[str, Any]]],
     scores.sort(key=lambda x: (x['exceeded'], x['average']), reverse=True)
     return scores
 
+
 def find_best_points_for_symbol(symbol: str,
                                exchange: str,
                                vertical_gap: float,
