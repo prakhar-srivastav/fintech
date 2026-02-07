@@ -68,3 +68,34 @@ executionPoller:
     requests:
       cpu: 100m
       memory: 128Mi
+
+# ====================================
+# Task Handler Service (strategy_task_handler.py)
+# ====================================
+taskHandler:
+  enabled: true
+  replicaCount: 1
+  serviceArg: "task-handler"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# ====================================
+# Task Watcher Service (strategy_task_watcher.py)
+# ====================================
+taskWatcher:
+  enabled: true
+  replicaCount: 1
+  serviceArg: "task-watcher"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+

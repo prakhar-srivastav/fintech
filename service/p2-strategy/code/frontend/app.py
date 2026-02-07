@@ -309,5 +309,48 @@ def execute_strategy_run(strategy_id):
                      'error': str(e)}), 500
 
 
+# ============================================================================
+# EXECUTIONS TAB - View all executions and their details
+# ============================================================================
+
+@app.route('/api/executions', methods=['GET'])
+def get_executions():
+    """
+    Get all strategy executions with pagination.
+    
+    Query params:
+        - limit: Number of executions per page (default: 50)
+        - offset: Number of executions to skip (default: 0)
+    """
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        offset = request.args.get('offset', 0, type=int)
+        
+        result = db_client.get_all_strategy_executions(limit=limit, offset=offset)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error fetching executions: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/executions/<int:execution_id>', methods=['GET'])
+def get_execution_details(execution_id):
+    """
+    Get full details of a specific execution including:
+    - Execution info (status, total_money, stimulate_mode, etc.)
+    - Strategy config from strategy_runs
+    - All stock details with tasks and outputs
+    - Daywise profit calculations
+    """
+    try:
+        result = db_client.get_execution_full_details(execution_id)
+        if not result:
+            return jsonify({'error': 'Execution not found'}), 404
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error fetching execution {execution_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8082, debug=True)

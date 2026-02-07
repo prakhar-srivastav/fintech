@@ -54,6 +54,27 @@ class DBClient:
         finally:
             if conn:
                 conn.close()
+
+    def execute_query(self, query, params=None):
+        """
+        Execute a raw SQL query and return results as list of dicts.
+        
+        Args:
+            query: SQL query string
+            params: Optional tuple of parameters for the query
+        
+        Returns:
+            List of dictionaries with query results
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+            results = cursor.fetchall()
+            cursor.close()
+            return results
     
     def get_default_strategy_config(self):
         """Get default strategy configuration from database"""
@@ -507,7 +528,7 @@ class DBClient:
             List of dicts with execution detail records
         """
         query = """
-        SELECT sed.id, sed.execution_id, sed.strategy_result_id, sed.weight_percent,
+        SELECT sed.id, sed.execution_id, sed.strategy_result_id, sed.weight_percent, sed.status,
                sr.stock, sr.exchange, sr.x, sr.y, sr.exceed_prob, sr.average,
                sr.vertical_gap, sr.horizontal_gap, sr.continuous_days
         FROM strategy_execution_details sed
@@ -610,14 +631,13 @@ class DBClient:
                 task.get('exchange'),
                 task.get('days_remaining', 0),
                 task.get('previous_task_id', -1),
-                'pending',
+                'queued',
                 datetime.now()
             ))
             conn.commit()
             task_id = cursor.lastrowid
             cursor.close()
             return task_id
-
 
     def change_strategy_execution_run_status(self, execution_id, status):
         """
@@ -637,7 +657,6 @@ class DBClient:
             cursor.execute(query, (status, execution_id))
             conn.commit()
             cursor.close()
-
 
     def get_strategy_execution_runs(self, status=None):
         """
@@ -664,3 +683,369 @@ class DBClient:
             results = cursor.fetchall()
             cursor.close()
             return {'runs': results}
+
+    def change_strategy_execution_detail_status(self, detail_id, status):
+        """
+        Update the status of a strategy execution detail.
+        
+        Args:
+            detail_id: The execution detail ID
+            status: New status ('pending', 'running', 'completed', 'failed')
+        """
+        query = """
+        UPDATE strategy_execution_details
+        SET status = %s
+        WHERE id = %s
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (status, detail_id))
+            conn.commit()
+            cursor.close()
+
+    def get_strategy_execution_tasks_by_detail(self, execution_detail_id, status=None):
+        """
+        Get strategy execution tasks for a specific execution detail.
+        
+        Args:
+            execution_detail_id: The execution detail ID
+            status: Filter by status (optional)
+        
+        Returns:
+            List of task records
+        """
+        query = """
+        SELECT id, execution_detail_id, timestamp_of_execution, day_of_execution,
+               current_money, current_shares, price_during_order, order_type,
+               stimulate_mode, x, y, stock, exchange, days_remaining,
+               previous_task_id, status, created_at, executed_at, error_message
+        FROM strategy_execution_tasks
+        WHERE execution_detail_id = %s
+        """
+        params = [execution_detail_id]
+        
+        if status:
+            query += " AND status = %s"
+            params.append(status)
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(query, params)
+            results = cursor.fetchall()
+            cursor.close()
+            return results
+
+    def change_strategy_execution_task_status(self, task_id, status, error_message=''):
+        """
+        Update the status of a strategy execution task.
+        
+        Args:
+            task_id: The task ID
+            status: New status ('queued', 'running', 'completed', 'failed')
+            error_message: Optional error message if status is 'failed'
+        """
+        query = """
+        UPDATE strategy_execution_tasks
+        SET status = %s, error_message = %s, executed_at = NOW()
+        WHERE id = %s
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (status, error_message, task_id))
+            conn.commit()
+            cursor.close()
+
+    def get_all_strategy_executions(self, limit=50, offset=0):
+        """
+        Get all strategy executions with strategy run config details and profit summary.
+        
+        Returns:
+            Dict with executions list and pagination info
+        """
+        query = """
+        SELECT 
+            se.id, se.strategy_id, se.status, se.stimulate_mode, se.total_money,
+            se.created_at, se.started_at, se.completed_at, se.error_message,
+            sr.config as strategy_config,
+            (SELECT COUNT(*) FROM strategy_execution_details WHERE execution_id = se.id) as details_count
+        FROM strategy_executions se
+        JOIN strategy_runs sr ON se.strategy_id = sr.id
+        ORDER BY se.created_at DESC
+        LIMIT %s OFFSET %s
+        """
+        
+        count_query = "SELECT COUNT(*) as total FROM strategy_executions"
+        
+        # Query to calculate total profit for an execution
+        profit_query = """
+        SELECT 
+            COALESCE(SUM(
+                CASE 
+                    WHEN sell_task.total_amount IS NOT NULL AND buy_task.total_amount IS NOT NULL 
+                    THEN sell_task.total_amount - buy_task.total_amount 
+                    ELSE 0 
+                END
+            ), 0) as total_profit
+        FROM strategy_execution_details sed
+        JOIN strategy_execution_tasks buy_t ON buy_t.execution_detail_id = sed.id AND buy_t.order_type = 'buy' AND buy_t.status = 'completed'
+        JOIN strategy_execution_tasks sell_t ON sell_t.execution_detail_id = sed.id AND sell_t.order_type = 'sell' AND sell_t.status = 'completed' AND sell_t.day_of_execution = buy_t.day_of_execution
+        LEFT JOIN strategy_execution_tasks_output buy_task ON buy_task.task_id = buy_t.id
+        LEFT JOIN strategy_execution_tasks_output sell_task ON sell_task.task_id = sell_t.id
+        WHERE sed.execution_id = %s
+        """
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            
+            # Get total count
+            cursor.execute(count_query)
+            total = cursor.fetchone()['total']
+            
+            # Get paginated results
+            cursor.execute(query, (limit, offset))
+            results = cursor.fetchall()
+            
+            # Process results and calculate profit for each
+            for row in results:
+                if row.get('total_money'):
+                    row['total_money'] = float(row['total_money'])
+                if row.get('created_at'):
+                    row['created_at'] = row['created_at'].strftime('%Y-%m-%d %H:%M:%S') if hasattr(row['created_at'], 'strftime') else str(row['created_at'])
+                if row.get('started_at'):
+                    row['started_at'] = row['started_at'].strftime('%Y-%m-%d %H:%M:%S') if hasattr(row['started_at'], 'strftime') else str(row['started_at'])
+                if row.get('completed_at'):
+                    row['completed_at'] = row['completed_at'].strftime('%Y-%m-%d %H:%M:%S') if hasattr(row['completed_at'], 'strftime') else str(row['completed_at'])
+                if row.get('strategy_config'):
+                    try:
+                        row['strategy_config'] = json.loads(row['strategy_config'])
+                    except:
+                        pass
+                
+                # Calculate total profit for this execution
+                try:
+                    cursor.execute(profit_query, (row['id'],))
+                    profit_result = cursor.fetchone()
+                    row['total_profit'] = float(profit_result['total_profit']) if profit_result and profit_result['total_profit'] else 0
+                except Exception as e:
+                    logger.warning(f"Could not calculate profit for execution {row['id']}: {e}")
+                    row['total_profit'] = 0
+            
+            cursor.close()
+            
+            return {
+                'executions': results,
+                'total': total,
+                'limit': limit,
+                'offset': offset,
+                'has_more': offset + limit < total
+            }
+
+    def get_execution_full_details(self, execution_id):
+        """
+        Get full details of a strategy execution including all stock details,
+        tasks, and outputs for the Executions tab.
+        
+        Args:
+            execution_id: The execution ID
+        
+        Returns:
+            Dict with execution data, stock details, and daywise profit info
+        """
+        # Get execution basic info
+        exec_query = """
+        SELECT 
+            se.id, se.strategy_id, se.status, se.stimulate_mode, se.total_money,
+            se.created_at, se.started_at, se.completed_at, se.error_message,
+            sr.config as strategy_config
+        FROM strategy_executions se
+        JOIN strategy_runs sr ON se.strategy_id = sr.id
+        WHERE se.id = %s
+        """
+        
+        # Get execution details with strategy results info
+        details_query = """
+        SELECT 
+            sed.id as detail_id, sed.execution_id, sed.strategy_result_id, 
+            sed.weight_percent, sed.status as detail_status,
+            sr.stock, sr.exchange, sr.x, sr.y, sr.exceed_prob, sr.average,
+            sr.p5, sr.p10, sr.p20, sr.p40, sr.p50,
+            sr.vertical_gap, sr.horizontal_gap, sr.continuous_days, sr.profit_days
+        FROM strategy_execution_details sed
+        JOIN strategy_results sr ON sed.strategy_result_id = sr.id
+        WHERE sed.execution_id = %s
+        """
+        
+        # Get tasks with outputs for this execution
+        tasks_query = """
+        SELECT 
+            t.id as task_id, t.execution_detail_id, t.timestamp_of_execution,
+            t.day_of_execution, t.current_money, t.current_shares,
+            t.price_during_order, t.order_type, t.stimulate_mode,
+            t.x, t.y, t.stock, t.exchange, t.days_remaining,
+            t.status as task_status, t.created_at as task_created_at,
+            t.executed_at, t.error_message as task_error,
+            o.id as output_id, o.order_id, o.shares_bought, o.price_per_share,
+            o.total_amount, o.money_provided, o.money_remaining,
+            o.order_timestamp, o.exchange_timestamp
+        FROM strategy_execution_tasks t
+        LEFT JOIN strategy_execution_tasks_output o ON t.id = o.task_id
+        WHERE t.execution_detail_id IN (
+            SELECT id FROM strategy_execution_details WHERE execution_id = %s
+        )
+        ORDER BY t.execution_detail_id, t.day_of_execution, t.order_type
+        """
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            
+            # Get execution info
+            cursor.execute(exec_query, (execution_id,))
+            execution = cursor.fetchone()
+            if not execution:
+                cursor.close()
+                return None
+            
+            # Process execution
+            if execution.get('total_money'):
+                execution['total_money'] = float(execution['total_money'])
+            if execution.get('created_at'):
+                execution['created_at'] = execution['created_at'].strftime('%Y-%m-%d %H:%M:%S') if hasattr(execution['created_at'], 'strftime') else str(execution['created_at'])
+            if execution.get('started_at'):
+                execution['started_at'] = execution['started_at'].strftime('%Y-%m-%d %H:%M:%S') if hasattr(execution['started_at'], 'strftime') else str(execution['started_at'])
+            if execution.get('completed_at'):
+                execution['completed_at'] = execution['completed_at'].strftime('%Y-%m-%d %H:%M:%S') if hasattr(execution['completed_at'], 'strftime') else str(execution['completed_at'])
+            if execution.get('strategy_config'):
+                try:
+                    execution['strategy_config'] = json.loads(execution['strategy_config'])
+                except:
+                    pass
+            
+            # Get execution details
+            cursor.execute(details_query, (execution_id,))
+            details = cursor.fetchall()
+            
+            # Convert Decimals to floats
+            for detail in details:
+                for key in ['weight_percent', 'exceed_prob', 'average', 'p5', 'p10', 'p20', 'p40', 'p50', 'vertical_gap', 'horizontal_gap']:
+                    if detail.get(key) is not None:
+                        detail[key] = float(detail[key])
+            
+            # Get tasks with outputs
+            cursor.execute(tasks_query, (execution_id,))
+            tasks = cursor.fetchall()
+            
+            # Process tasks
+            for task in tasks:
+                for key in ['current_money', 'price_during_order', 'total_amount', 'money_provided', 'money_remaining', 'price_per_share']:
+                    if task.get(key) is not None:
+                        task[key] = float(task[key])
+                if task.get('executed_at'):
+                    task['executed_at'] = task['executed_at'].strftime('%Y-%m-%d %H:%M:%S') if hasattr(task['executed_at'], 'strftime') else str(task['executed_at'])
+                if task.get('order_timestamp'):
+                    task['order_timestamp'] = task['order_timestamp'].strftime('%Y-%m-%d %H:%M:%S') if hasattr(task['order_timestamp'], 'strftime') else str(task['order_timestamp'])
+            
+            cursor.close()
+            
+            # Organize tasks by detail_id
+            tasks_by_detail = {}
+            for task in tasks:
+                detail_id = task['execution_detail_id']
+                if detail_id not in tasks_by_detail:
+                    tasks_by_detail[detail_id] = []
+                tasks_by_detail[detail_id].append(task)
+            
+            # Add tasks to details and calculate profits
+            total_profit = 0
+            daywise_profit = {}
+            
+            for detail in details:
+                detail_id = detail['detail_id']
+                detail['tasks'] = tasks_by_detail.get(detail_id, [])
+                
+                # Calculate money allocated per day
+                if execution.get('total_money') and detail.get('weight_percent'):
+                    detail['money_allocated'] = execution['total_money'] * detail['weight_percent'] / 100
+                else:
+                    detail['money_allocated'] = 0
+                
+                # Calculate estimated profits
+                if detail['money_allocated'] > 0:
+                    detail['estimated_profit_average'] = detail['money_allocated'] * (detail.get('average', 0) or 0) / 100
+                    detail['estimated_profit_vgap'] = detail['money_allocated'] * (detail.get('vertical_gap', 0) or 0) / 100
+                    detail['estimated_profit_p5'] = detail['money_allocated'] * (detail.get('p5', 0) or 0) / 100
+                    detail['estimated_profit_p10'] = detail['money_allocated'] * (detail.get('p10', 0) or 0) / 100
+                    detail['estimated_profit_p20'] = detail['money_allocated'] * (detail.get('p20', 0) or 0) / 100
+                    detail['estimated_profit_p40'] = detail['money_allocated'] * (detail.get('p40', 0) or 0) / 100
+                    detail['estimated_profit_p50'] = detail['money_allocated'] * (detail.get('p50', 0) or 0) / 100
+                else:
+                    detail['estimated_profit_average'] = 0
+                    detail['estimated_profit_vgap'] = 0
+                    detail['estimated_profit_p5'] = 0
+                    detail['estimated_profit_p10'] = 0
+                    detail['estimated_profit_p20'] = 0
+                    detail['estimated_profit_p40'] = 0
+                    detail['estimated_profit_p50'] = 0
+                
+                # Calculate actual profit from completed tasks
+                detail['actual_profit'] = 0
+                detail['days_completed'] = 0
+                detail['total_days'] = detail.get('continuous_days', 0) or 0
+                detail['daywise'] = []
+                
+                # Group tasks by day
+                days = {}
+                for task in detail['tasks']:
+                    day = task.get('day_of_execution', 'unknown')
+                    if day not in days:
+                        days[day] = {'buy': None, 'sell': None}
+                    if task['order_type'] == 'buy':
+                        days[day]['buy'] = task
+                    else:
+                        days[day]['sell'] = task
+                
+                # Calculate per-day profit
+                for day, day_tasks in sorted(days.items()):
+                    day_info = {
+                        'day': day,
+                        'buy': day_tasks['buy'],
+                        'sell': day_tasks['sell'],
+                        'profit': None,
+                        'status': 'pending'
+                    }
+                    
+                    buy_task = day_tasks['buy']
+                    sell_task = day_tasks['sell']
+                    
+                    if buy_task and sell_task:
+                        if buy_task.get('task_status') == 'completed' and sell_task.get('task_status') == 'completed':
+                            buy_amount = buy_task.get('total_amount') or 0
+                            sell_amount = sell_task.get('total_amount') or 0
+                            day_profit = sell_amount - buy_amount
+                            day_info['profit'] = day_profit
+                            day_info['status'] = 'completed'
+                            detail['actual_profit'] += day_profit
+                            detail['days_completed'] += 1
+                            
+                            # Add to overall daywise profit
+                            if day not in daywise_profit:
+                                daywise_profit[day] = 0
+                            daywise_profit[day] += day_profit
+                        elif buy_task.get('task_status') == 'failed' or sell_task.get('task_status') == 'failed':
+                            day_info['status'] = 'failed'
+                        elif buy_task.get('task_status') == 'completed':
+                            day_info['status'] = 'in_progress'
+                    elif buy_task:
+                        if buy_task.get('task_status') == 'completed':
+                            day_info['status'] = 'in_progress'
+                        elif buy_task.get('task_status') == 'failed':
+                            day_info['status'] = 'failed'
+                    
+                    detail['daywise'].append(day_info)
+                
+                total_profit += detail['actual_profit']
+            
+            execution['details'] = details
+            execution['total_profit'] = total_profit
+            execution['daywise_profit'] = daywise_profit
+            
+            return execution

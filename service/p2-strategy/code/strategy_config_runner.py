@@ -257,7 +257,7 @@ def decorate_points(points: List[Dict[str, Any]], metadata: Dict[str, Any]) -> L
     return points
 
 def main():
-    vertical_gap = [0.5, 1 , 2]
+    vertical_gap = [0.5,1,2]
     horizontal_gap = [2]
     continuous_days = [3,5,7,10]
     start_date, end_date = get_date_range()
@@ -431,13 +431,8 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> 
         else:
             logger.warning(f"No results to save for strategy {strategy_id}")
         
-        # Update status to completed
-        db_client.update_strategy_run_status(strategy_id, 'completed')
-        logger.info(f"Strategy run {strategy_id} completed successfully")
-        
     except Exception as e:
         logger.error(f"Strategy execution error for {strategy_id}: {e}")
-        db_client.update_strategy_run_status(strategy_id, 'failed')
         raise
     
     return strategy_id

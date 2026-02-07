@@ -16,9 +16,17 @@ case "$SERVICE" in
         echo "Running Execution Poller (strategy_execution_poller.py)..."
         exec python strategy_execution_poller.py
         ;;
+    "task-handler")
+        echo "Running Task Handler (strategy_task_handler.py)..."
+        exec python strategy_task_handler.py
+        ;;
+    "task-watcher")
+        echo "Running Task Watcher (strategy_task_watcher.py)..."
+        exec python strategy_task_watcher.py
+        ;;
     *)
         echo "Unknown service: $SERVICE"
-        echo "Valid options: frontend, config-poller, execution-poller"
+        echo "Valid options: frontend, config-poller, execution-poller, task-handler, task-watcher"
         exit 1
         ;;
 esac

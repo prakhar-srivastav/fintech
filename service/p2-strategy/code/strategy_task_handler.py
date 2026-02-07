@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 BROKER_MIDDLEWARE_URL = os.getenv('BROKER_MIDDLEWARE_URL', 'http://localhost:5000')
-POLL_INTERVAL = int(os.getenv('POLL_INTERVAL', '10'))  # seconds
-BUFFER = int(os.getenv('BUFFER', '170'))  # seconds buffer for polling
+POLL_INTERVAL = int(os.getenv('POLL_INTERVAL', '10'))
+BUFFER = int(os.getenv('BUFFER', '120'))
 
 # Database configuration
 DB_CONFIG = {
@@ -36,11 +36,11 @@ class TaskHandler:
     def __init__(self, db_client: DBClient):
         self.db = db_client
     
-    def get_pending_tasks(self, time_left, time_right, day_of_execution):
-        """Get all pending tasks that are ready to execute"""
+    def get_queued_tasks(self, time_left, time_right, day_of_execution):
+        """Get all queued tasks that are ready to execute"""
         query = """
         SELECT * FROM strategy_execution_tasks 
-        WHERE status = 'pending' AND timestamp_of_execution BETWEEN %s AND %s
+        WHERE status = 'queued' AND timestamp_of_execution BETWEEN %s AND %s
         AND day_of_execution = %s
         ORDER BY created_at ASC
         LIMIT 10
@@ -233,7 +233,7 @@ class TaskHandler:
         order_type = task['order_type']
         
         logger.info(f"Processing task {task_id}: {order_type} {task['stock']}")
-        
+        self.db.change_strategy_execution_task_status(task_id, 'running')
         try:
             # Execute order
             if order_type == 'buy':
@@ -271,14 +271,14 @@ class TaskHandler:
                 time_left = start_time - BUFFER
                 time_right = start_time + POLL_INTERVAL
                 logger.info(f"Polling for tasks between {time_left} and {time_right} on day {now.strftime('%Y-%m-%d')}")
-                tasks = self.get_pending_tasks(time_left, time_right, now.strftime('%Y-%m-%d'))
+                tasks = self.get_queued_tasks(time_left, time_right, now.strftime('%Y-%m-%d'))
 
                 if tasks:
-                    logger.info(f"Found {len(tasks)} pending tasks")
+                    logger.info(f"Found {len(tasks)} queued tasks")
                     for task in tasks:
                         self.process_task(task)
                 else:
-                    logger.debug("No pending tasks")
+                    logger.debug("No queued tasks")
                 
             except Exception as e:
                 logger.error(f"Error in polling loop: {e}")

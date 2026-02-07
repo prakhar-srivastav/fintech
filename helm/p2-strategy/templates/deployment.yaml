@@ -143,3 +143,93 @@ spec:
           resources:
             {{- toYaml .Values.executionPoller.resources | nindent 12 }}
 {{- end }}
+
+{{- if .Values.taskHandler.enabled }}
+---
+# P2 Strategy Task Handler Deployment (strategy_task_handler.py)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: p2-strategy-task-handler
+  labels:
+    app: p2-strategy-task-handler
+    component: task-handler
+spec:
+  replicas: {{ .Values.taskHandler.replicaCount }}
+  selector:
+    matchLabels:
+      app: p2-strategy-task-handler
+  template:
+    metadata:
+      labels:
+        app: p2-strategy-task-handler
+        component: task-handler
+    spec:
+      containers:
+        - name: p2-strategy-task-handler
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SERVICE
+              value: {{ .Values.taskHandler.serviceArg | quote }}
+            - name: DB_HOST
+              value: {{ .Values.DB_CONFIG.DB_HOST | quote }}
+            - name: DB_USER
+              value: {{ .Values.DB_CONFIG.DB_USER | quote }}
+            - name: DB_PASSWORD
+              value: {{ .Values.DB_CONFIG.DB_PASSWORD | quote }}
+            - name: DB_NAME
+              value: {{ .Values.DB_CONFIG.DB_NAME | quote }}
+            - name: DB_PORT
+              value: {{ .Values.DB_CONFIG.DB_PORT | quote }}
+            - name: POLL_INTERVAL
+              value: {{ .Values.POLLER_CONFIG.POLL_INTERVAL | quote }}
+            - name: BROKER_MIDDLEWARE_URL
+              value: "http://broker-middleware.fintech.svc.cluster.local:5000"
+          resources:
+            {{- toYaml .Values.taskHandler.resources | nindent 12 }}
+{{- end }}
+
+{{- if .Values.taskWatcher.enabled }}
+---
+# P2 Strategy Task Watcher Deployment (strategy_task_watcher.py)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: p2-strategy-task-watcher
+  labels:
+    app: p2-strategy-task-watcher
+    component: task-watcher
+spec:
+  replicas: {{ .Values.taskWatcher.replicaCount }}
+  selector:
+    matchLabels:
+      app: p2-strategy-task-watcher
+  template:
+    metadata:
+      labels:
+        app: p2-strategy-task-watcher
+        component: task-watcher
+    spec:
+      containers:
+        - name: p2-strategy-task-watcher
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SERVICE
+              value: {{ .Values.taskWatcher.serviceArg | quote }}
+            - name: DB_HOST
+              value: {{ .Values.DB_CONFIG.DB_HOST | quote }}
+            - name: DB_USER
+              value: {{ .Values.DB_CONFIG.DB_USER | quote }}
+            - name: DB_PASSWORD
+              value: {{ .Values.DB_CONFIG.DB_PASSWORD | quote }}
+            - name: DB_NAME
+              value: {{ .Values.DB_CONFIG.DB_NAME | quote }}
+            - name: DB_PORT
+              value: {{ .Values.DB_CONFIG.DB_PORT | quote }}
+            - name: POLL_INTERVAL
+              value: {{ .Values.POLLER_CONFIG.POLL_INTERVAL | quote }}
+          resources:
+            {{- toYaml .Values.taskWatcher.resources | nindent 12 }}
+{{- end }}

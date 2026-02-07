@@ -970,6 +970,495 @@
         .btn-distribute:hover {
             background: rgba(102, 126, 234, 0.5);
         }
+        
+        /* ============================================================================
+         * EXECUTIONS TAB STYLES
+         * ============================================================================ */
+        
+        /* Execution List Item */
+        .execution-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .execution-item:hover {
+            background: rgba(102, 126, 234, 0.15);
+            transform: translateX(5px);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        .execution-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        .execution-item-title {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .execution-item-id {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        .execution-item-date {
+            font-size: 0.85rem;
+            color: #888;
+        }
+        .execution-item-status {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .execution-item-status.queued {
+            background: rgba(251, 191, 36, 0.2);    
+            color: #fbbf24;
+        }
+        .execution-item-status.running {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+        .execution-item-status.completed {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+        .execution-item-status.failed {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+        .execution-item-body {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .execution-item-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .execution-item-stat .label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+        .execution-item-stat .value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        .execution-item-stat .value.positive {
+            color: #4ade80;
+        }
+        .execution-item-stat .value.negative {
+            color: #f87171;
+        }
+        .execution-item-stat .value.mode-live {
+            color: #f87171;
+        }
+        .execution-item-stat .value.mode-simulate {
+            color: #fbbf24;
+        }
+        
+        /* Execution Summary in Details View */
+        .execution-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .summary-stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 18px;
+            text-align: center;
+        }
+        .summary-stat-card .stat-value {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .summary-stat-card .stat-value.positive {
+            color: #4ade80;
+        }
+        .summary-stat-card .stat-value.negative {
+            color: #f87171;
+        }
+        .summary-stat-card .stat-label {
+            font-size: 0.85rem;
+            color: #888;
+        }
+        
+        /* Strategy Config Display */
+        .strategy-config-box {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .strategy-config-box h4 {
+            color: #667eea;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        .config-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .config-tag {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            color: #ccc;
+        }
+        .config-tag strong {
+            color: #fff;
+        }
+        
+        /* Profit Overview */
+        .profit-overview-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .profit-overview-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .profit-totals {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .profit-total-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        .profit-total-card.net-profit {
+            border: 2px solid rgba(102, 126, 234, 0.5);
+        }
+        .profit-total-card .amount {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .profit-total-card .amount.positive {
+            color: #4ade80;
+        }
+        .profit-total-card .amount.negative {
+            color: #f87171;
+        }
+        .profit-total-card .amount.neutral {
+            color: #888;
+        }
+        .profit-total-card .title {
+            color: #888;
+            font-size: 0.9rem;
+        }
+        
+        /* Daywise Profit Table */
+        .daywise-profit-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .daywise-profit-container h4 {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+        .daywise-profit-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .daywise-profit-row:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .daywise-profit-row .day-name {
+            color: #ccc;
+            font-weight: 500;
+        }
+        .daywise-profit-row .day-profit {
+            font-weight: 600;
+        }
+        .daywise-profit-row .day-profit.positive {
+            color: #4ade80;
+        }
+        .daywise-profit-row .day-profit.negative {
+            color: #f87171;
+        }
+        
+        /* Stock Details Expandable List */
+        .stock-detail-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .stock-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .stock-detail-header:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        .stock-detail-header.expanded {
+            background: rgba(102, 126, 234, 0.15);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .stock-detail-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .stock-symbol-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            min-width: 100px;
+            text-align: center;
+        }
+        .stock-symbol-badge .symbol {
+            font-size: 1.1rem;
+        }
+        .stock-symbol-badge .exchange {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+        .stock-config-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .stock-config-info .xy-range {
+            font-size: 1rem;
+            color: #fff;
+            font-weight: 600;
+        }
+        .stock-config-info .config-details {
+            font-size: 0.8rem;
+            color: #888;
+        }
+        .stock-detail-stats {
+            display: flex;
+            gap: 25px;
+            align-items: center;
+        }
+        .stock-stat {
+            text-align: center;
+        }
+        .stock-stat .stat-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        .stock-stat .stat-value.positive {
+            color: #4ade80;
+        }
+        .stock-stat .stat-value.negative {
+            color: #f87171;
+        }
+        .stock-stat .stat-label {
+            font-size: 0.7rem;
+            color: #888;
+            margin-top: 2px;
+        }
+        .expand-icon {
+            font-size: 1.2rem;
+            color: #888;
+            transition: transform 0.3s;
+        }
+        .stock-detail-header.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+        
+        /* Stock Detail Expanded Content */
+        .stock-detail-content {
+            display: none;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .stock-detail-content.show {
+            display: block;
+        }
+        
+        /* Estimates Section */
+        .estimates-section {
+            margin-bottom: 20px;
+        }
+        .estimates-section h5 {
+            color: #aaa;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+        }
+        .estimates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+        }
+        .estimate-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .estimate-card .est-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #4ade80;
+        }
+        .estimate-card .est-label {
+            font-size: 0.7rem;
+            color: #888;
+            margin-top: 3px;
+        }
+        
+        /* Day-by-Day Execution Details */
+        .days-section h5 {
+            color: #aaa;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+        }
+        .day-execution-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .day-execution-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .day-label {
+            font-weight: 600;
+            color: #fff;
+            font-size: 0.95rem;
+        }
+        .day-status {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .day-status.completed {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+        .day-status.in_progress {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+        .day-status.pending {
+            background: rgba(156, 163, 175, 0.2);
+            color: #9ca3af;
+        }
+        .day-status.failed {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+        .day-execution-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+        @media (max-width: 600px) {
+            .day-execution-body {
+                grid-template-columns: 1fr;
+            }
+        }
+        .order-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            padding: 12px;
+        }
+        .order-card.buy-order {
+            border-left: 3px solid #4ade80;
+        }
+        .order-card.sell-order {
+            border-left: 3px solid #f87171;
+        }
+        .order-card.profit-card {
+            border-left: 3px solid #667eea;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .order-type-label {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .order-details {
+            font-size: 0.85rem;
+            color: #ccc;
+        }
+        .order-details .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .order-details .detail-label {
+            color: #888;
+        }
+        .order-details .detail-value {
+            color: #fff;
+        }
+        .profit-card .profit-amount {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+        .profit-card .profit-amount.positive {
+            color: #4ade80;
+        }
+        .profit-card .profit-amount.negative {
+            color: #f87171;
+        }
+        .profit-card .profit-label {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        /* No Data States */
+        .no-data-message {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        .no-data-message .icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -983,6 +1472,7 @@
         <div class="tabs">
             <button class="tab-btn active" data-tab="run-strategy" onclick="switchTab('run-strategy', this)">🚀 Schedule Strategy</button>
             <button class="tab-btn" data-tab="previous-runs" onclick="switchTab('previous-runs', this)">📊 All Runs</button>
+            <button class="tab-btn" data-tab="executions" onclick="switchTab('executions', this)">💼 Executions</button>
         </div>
 
         <!-- Run Strategy Tab -->
@@ -1225,6 +1715,60 @@
                     </div>
                 </div>
             </div>
+        </div> <!-- End of previous-runs-tab -->
+
+        <!-- Executions Tab -->
+        <div id="executions-tab" class="tab-content">
+            <!-- Executions List View -->
+            <div id="executionsListView">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h2>💼 Strategy Executions</h2>
+                        <button class="btn btn-secondary" onclick="loadExecutions()" style="margin: 0;">🔄 Refresh</button>
+                    </div>
+                    <div id="executionsList">
+                        <p style="text-align: center; color: #888; padding: 40px;">Loading executions...</p>
+                    </div>
+                    <div class="pagination" id="executionsPagination" style="display: none;">
+                        <button onclick="loadExecutions(currentExecutionsPage - 1)" id="execPrevBtn">← Previous</button>
+                        <span class="page-info" id="execPageInfo">Page 1</span>
+                        <button onclick="loadExecutions(currentExecutionsPage + 1)" id="execNextBtn">Next →</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Execution Details View -->
+            <div id="executionDetailsView" class="hidden">
+                <div class="card">
+                    <div class="run-details-header">
+                        <h3 id="executionDetailsTitle">Execution Details</h3>
+                        <button class="back-btn" onclick="showExecutionsList()">← Back to Executions</button>
+                    </div>
+                    
+                    <!-- Execution Summary -->
+                    <div class="execution-summary" id="executionSummary">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Profit Overview -->
+                <div class="card">
+                    <h2>📈 Profit Overview</h2>
+                    <div class="profit-overview" id="profitOverview">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Stock Details (Expandable) -->
+                <div class="card">
+                    <h2>📊 Stock Details</h2>
+                    <p style="color: #888; margin-bottom: 15px;">Click on a stock row to expand and see day-by-day execution details</p>
+                    <div class="execution-stocks-list" id="executionStocksList">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div> <!-- End of executions-tab -->
 
         <!-- Top Configs Modal -->
         <div class="modal-overlay" id="configsModal">
@@ -1703,6 +2247,12 @@
                     container.innerHTML = '<p style="color: #4ade80; padding: 20px; text-align: center;">Tab switched successfully! Loading data...</p>';
                 }
                 loadRuns(1);
+            }
+            
+            // Load executions if switching to that tab
+            if (tabName === 'executions') {
+                console.log('Loading executions for executions tab...');
+                loadExecutions(1);
             }
         }
 
@@ -2258,7 +2808,7 @@
             // Prepare payload
             const payload = {
                 stimulate_mode: stimulateMode,
-                total_money: stimulateMode ? null : parseFloat(totalMoney),
+                total_money: totalMoney ? parseFloat(totalMoney) : null,
                 selected_configs: executionConfigData.map(c => ({
                     id: parseInt(c.id),
                     weight_percent: c.weight_percent
@@ -2326,6 +2876,508 @@
                 closeExecutionModal();
             }
         });
+
+        // ============================================================================
+        // EXECUTIONS TAB FUNCTIONALITY
+        // ============================================================================
+        
+        let currentExecutionsPage = 1;
+        let totalExecutionsPages = 1;
+        let currentExecutionData = null;
+        
+        async function loadExecutions(page = 1) {
+            console.log('=== LOAD EXECUTIONS CALLED ===');
+            console.log('Page:', page);
+            
+            if (page < 1) return;
+            
+            const container = document.getElementById('executionsList');
+            if (!container) {
+                console.error('ERROR: executionsList container not found!');
+                return;
+            }
+            
+            // Show loading state
+            container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner"></div><p style="color: #888; margin-top: 10px;">Loading executions...</p></div>';
+            
+            try {
+                const limit = 10;
+                const offset = (page - 1) * limit;
+                const url = `/api/executions?limit=${limit}&offset=${offset}`;
+                console.log('Fetching URL:', url);
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+                
+                const data = await response.json();
+                console.log('Executions API response:', data);
+                
+                if (data.error) {
+                    container.innerHTML = `<div class="no-data-message"><div class="icon">❌</div><p>Error: ${data.error}</p></div>`;
+                    return;
+                }
+                
+                currentExecutionsPage = page;
+                totalExecutionsPages = Math.ceil((data.total || 0) / limit) || 1;
+                
+                renderExecutionsList(data.executions || []);
+                updateExecutionsPagination();
+                
+            } catch (error) {
+                console.error('Error loading executions:', error);
+                container.innerHTML = `<div class="no-data-message"><div class="icon">❌</div><p>Error loading executions: ${error.message}</p></div>`;
+            }
+        }
+        
+        function renderExecutionsList(executions) {
+            const container = document.getElementById('executionsList');
+            
+            if (!executions || executions.length === 0) {
+                container.innerHTML = `
+                    <div class="no-data-message">
+                        <div class="icon">📭</div>
+                        <p>No executions found</p>
+                        <p style="font-size: 0.85rem; margin-top: 10px;">Go to "All Runs" tab to select configurations and create an execution</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = executions.map(exec => {
+                const statusClass = exec.status || 'queued';
+                const mode = exec.stimulate_mode ? 'Simulation' : 'Live';
+                const modeClass = exec.stimulate_mode ? 'mode-simulate' : 'mode-live';
+                const totalMoney = exec.total_money ? `₹${parseFloat(exec.total_money).toLocaleString()}` : 'N/A';
+                const netProfit = exec.total_profit !== undefined && exec.total_profit !== null 
+                    ? `₹${parseFloat(exec.total_profit).toLocaleString()}` 
+                    : 'N/A';
+                const profitClass = exec.total_profit > 0 ? 'positive' : (exec.total_profit < 0 ? 'negative' : '');
+                
+                // Parse config for display
+                let configSummary = '';
+                if (exec.strategy_config) {
+                    const cfg = typeof exec.strategy_config === 'string' 
+                        ? JSON.parse(exec.strategy_config) 
+                        : exec.strategy_config;
+                    const stocks = [...(cfg.nse_stocks || []), ...(cfg.bse_stocks || [])];
+                    configSummary = stocks.slice(0, 3).join(', ') + (stocks.length > 3 ? ` +${stocks.length - 3} more` : '');
+                }
+                
+                return `
+                    <div class="execution-item" onclick="viewExecutionDetails(${exec.id})">
+                        <div class="execution-item-header">
+                            <div class="execution-item-title">
+                                <span class="execution-item-id">Execution #${exec.id}</span>
+                                <span class="execution-item-date">${exec.created_at || 'N/A'}</span>
+                                ${configSummary ? `<span style="font-size: 0.8rem; color: #888;">Stocks: ${configSummary}</span>` : ''}
+                            </div>
+                            <span class="execution-item-status ${statusClass}">${exec.status || 'queued'}</span>
+                        </div>
+                        <div class="execution-item-body">
+                            <div class="execution-item-stat">
+                                <span class="label">Mode</span>
+                                <span class="value ${modeClass}">${mode}</span>
+                            </div>
+                            <div class="execution-item-stat">
+                                <span class="label">Total Money</span>
+                                <span class="value">${totalMoney}</span>
+                            </div>
+                            <div class="execution-item-stat">
+                                <span class="label">Net Profit</span>
+                                <span class="value ${profitClass}">${netProfit}</span>
+                            </div>
+                            <div class="execution-item-stat">
+                                <span class="label">Strategy Run</span>
+                                <span class="value">#${exec.strategy_id || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function updateExecutionsPagination() {
+            const pagination = document.getElementById('executionsPagination');
+            const prevBtn = document.getElementById('execPrevBtn');
+            const nextBtn = document.getElementById('execNextBtn');
+            const pageInfo = document.getElementById('execPageInfo');
+            
+            if (totalExecutionsPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+            
+            pagination.style.display = 'flex';
+            pageInfo.textContent = `Page ${currentExecutionsPage} of ${totalExecutionsPages}`;
+            prevBtn.disabled = currentExecutionsPage <= 1;
+            nextBtn.disabled = currentExecutionsPage >= totalExecutionsPages;
+        }
+        
+        async function viewExecutionDetails(executionId) {
+            console.log('=== VIEW EXECUTION DETAILS ===');
+            console.log('Execution ID:', executionId);
+            
+            // Show details view, hide list
+            document.getElementById('executionsListView').classList.add('hidden');
+            document.getElementById('executionDetailsView').classList.remove('hidden');
+            
+            // Show loading in summary
+            document.getElementById('executionSummary').innerHTML = '<div style="text-align: center; padding: 30px;"><div class="spinner"></div><p style="color: #888;">Loading execution details...</p></div>';
+            document.getElementById('profitOverview').innerHTML = '';
+            document.getElementById('executionStocksList').innerHTML = '';
+            
+            try {
+                const response = await fetch(`/api/executions/${executionId}`);
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+                
+                const data = await response.json();
+                console.log('Execution details:', data);
+                
+                if (data.error) {
+                    document.getElementById('executionSummary').innerHTML = `<div class="no-data-message"><div class="icon">❌</div><p>Error: ${data.error}</p></div>`;
+                    return;
+                }
+                
+                currentExecutionData = data;
+                renderExecutionDetails(data);
+                
+            } catch (error) {
+                console.error('Error loading execution details:', error);
+                document.getElementById('executionSummary').innerHTML = `<div class="no-data-message"><div class="icon">❌</div><p>Error: ${error.message}</p></div>`;
+            }
+        }
+        
+        function renderExecutionDetails(exec) {
+            // Update title
+            document.getElementById('executionDetailsTitle').innerHTML = `💼 Execution #${exec.id} Details`;
+            
+            // Render Summary
+            const mode = exec.stimulate_mode ? 'Simulation' : 'Live';
+            const modeClass = exec.stimulate_mode ? 'mode-simulate' : 'mode-live';
+            const totalMoney = exec.total_money ? `₹${parseFloat(exec.total_money).toLocaleString()}` : 'N/A';
+            const netProfit = exec.total_profit !== undefined ? parseFloat(exec.total_profit) : 0;
+            const profitClass = netProfit > 0 ? 'positive' : (netProfit < 0 ? 'negative' : 'neutral');
+            const stockCount = exec.details ? exec.details.length : 0;
+            
+            // Parse strategy config
+            let configHtml = '';
+            if (exec.strategy_config) {
+                const cfg = typeof exec.strategy_config === 'string' 
+                    ? JSON.parse(exec.strategy_config) 
+                    : exec.strategy_config;
+                const allStocks = [...(cfg.nse_stocks || []), ...(cfg.bse_stocks || [])];
+                configHtml = `
+                    <div class="strategy-config-box">
+                        <h4>📋 Strategy Configuration</h4>
+                        <div class="config-tags">
+                            <span class="config-tag"><strong>Granularity:</strong> ${cfg.granularity || 'N/A'}</span>
+                            <span class="config-tag"><strong>V-Gaps:</strong> ${(cfg.vertical_gaps || []).join(', ')}</span>
+                            <span class="config-tag"><strong>H-Gaps:</strong> ${(cfg.horizontal_gaps || []).join(', ')}</span>
+                            <span class="config-tag"><strong>C-Days:</strong> ${(cfg.continuous_days || []).join(', ')}</span>
+                            <span class="config-tag"><strong>Date Range:</strong> ${cfg.start_date || 'N/A'} to ${cfg.end_date || 'N/A'}</span>
+                            <span class="config-tag"><strong>Stocks:</strong> ${allStocks.join(', ')}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('executionSummary').innerHTML = `
+                <div class="execution-summary-grid">
+                    <div class="summary-stat-card">
+                        <div class="stat-value">#${exec.id}</div>
+                        <div class="stat-label">Execution ID</div>
+                    </div>
+                    <div class="summary-stat-card">
+                        <div class="stat-value ${modeClass}">${mode}</div>
+                        <div class="stat-label">Mode</div>
+                    </div>
+                    <div class="summary-stat-card">
+                        <div class="stat-value">${totalMoney}</div>
+                        <div class="stat-label">Total Money</div>
+                    </div>
+                    <div class="summary-stat-card">
+                        <div class="stat-value ${profitClass}">₹${netProfit.toLocaleString()}</div>
+                        <div class="stat-label">Net Profit</div>
+                    </div>
+                    <div class="summary-stat-card">
+                        <div class="stat-value">${stockCount}</div>
+                        <div class="stat-label">Stocks</div>
+                    </div>
+                    <div class="summary-stat-card">
+                        <div class="stat-value" style="text-transform: capitalize;">${exec.status || 'queued'}</div>
+                        <div class="stat-label">Status</div>
+                    </div>
+                </div>
+                <div style="font-size: 0.85rem; color: #888; margin-top: 10px;">
+                    <strong>Created:</strong> ${exec.created_at || 'N/A'} | 
+                    <strong>Started:</strong> ${exec.started_at || 'Not started'} | 
+                    <strong>Completed:</strong> ${exec.completed_at || 'In progress'}
+                </div>
+                ${configHtml}
+            `;
+            
+            // Render Profit Overview
+            renderProfitOverview(exec);
+            
+            // Render Stock Details
+            renderStockDetails(exec.details || []);
+        }
+        
+        function renderProfitOverview(exec) {
+            const netProfit = exec.total_profit !== undefined ? parseFloat(exec.total_profit) : 0;
+            const profitClass = netProfit > 0 ? 'positive' : (netProfit < 0 ? 'negative' : 'neutral');
+            
+            // Calculate estimated profit (sum from details)
+            let estimatedProfitAvg = 0;
+            let totalAllocated = 0;
+            if (exec.details) {
+                exec.details.forEach(d => {
+                    estimatedProfitAvg += d.estimated_profit_average || 0;
+                    totalAllocated += d.money_allocated || 0;
+                });
+            }
+            
+            // Daywise profit
+            const daywiseProfit = exec.daywise_profit || {};
+            const sortedDays = Object.keys(daywiseProfit).sort();
+            
+            let daywiseHtml = '';
+            if (sortedDays.length > 0) {
+                daywiseHtml = sortedDays.map(day => {
+                    const profit = daywiseProfit[day];
+                    const pClass = profit > 0 ? 'positive' : (profit < 0 ? 'negative' : '');
+                    return `
+                        <div class="daywise-profit-row">
+                            <span class="day-name">${day}</span>
+                            <span class="day-profit ${pClass}">₹${parseFloat(profit).toLocaleString()}</span>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                daywiseHtml = '<p style="color: #888; text-align: center; padding: 20px;">No daywise data yet</p>';
+            }
+            
+            document.getElementById('profitOverview').innerHTML = `
+                <div class="profit-overview-grid">
+                    <div class="profit-totals">
+                        <div class="profit-total-card net-profit">
+                            <div class="amount ${profitClass}">₹${netProfit.toLocaleString()}</div>
+                            <div class="title">Net Profit (Actual)</div>
+                        </div>
+                        <div class="profit-total-card">
+                            <div class="amount" style="color: #667eea;">₹${estimatedProfitAvg.toLocaleString()}</div>
+                            <div class="title">Est. Profit (Based on Avg)</div>
+                        </div>
+                        <div class="profit-total-card">
+                            <div class="amount" style="color: #aaa;">₹${totalAllocated.toLocaleString()}</div>
+                            <div class="title">Total Allocated</div>
+                        </div>
+                    </div>
+                    <div class="daywise-profit-container">
+                        <h4>📅 Day-by-Day Profit</h4>
+                        ${daywiseHtml}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderStockDetails(details) {
+            const container = document.getElementById('executionStocksList');
+            
+            if (!details || details.length === 0) {
+                container.innerHTML = `
+                    <div class="no-data-message">
+                        <div class="icon">📭</div>
+                        <p>No stock details available</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = details.map((detail, idx) => {
+                const actualProfit = detail.actual_profit || 0;
+                const profitClass = actualProfit > 0 ? 'positive' : (actualProfit < 0 ? 'negative' : '');
+                const daysCompleted = detail.days_completed || 0;
+                const totalDays = detail.total_days || detail.continuous_days || 0;
+                const progress = totalDays > 0 ? Math.round((daysCompleted / totalDays) * 100) : 0;
+                
+                // Estimates
+                const formatMoney = (val) => val !== undefined && val !== null ? `₹${parseFloat(val).toFixed(2)}` : 'N/A';
+                
+                // Day details
+                let dayDetailsHtml = '';
+                if (detail.daywise && detail.daywise.length > 0) {
+                    dayDetailsHtml = detail.daywise.map(day => renderDayExecution(day)).join('');
+                } else {
+                    dayDetailsHtml = '<p style="color: #888; text-align: center; padding: 20px;">No day execution data</p>';
+                }
+                
+                return `
+                    <div class="stock-detail-item">
+                        <div class="stock-detail-header" onclick="toggleStockDetails(${idx})">
+                            <div class="stock-detail-left">
+                                <div class="stock-symbol-badge">
+                                    <div class="symbol">${detail.stock}</div>
+                                    <div class="exchange">${detail.exchange}</div>
+                                </div>
+                                <div class="stock-config-info">
+                                    <span class="xy-range">${detail.x} → ${detail.y}</span>
+                                    <span class="config-details">V:${detail.vertical_gap} H:${detail.horizontal_gap} D:${detail.continuous_days} | Prob: ${((detail.exceed_prob || 0) * 100).toFixed(2)}%</span>
+                                </div>
+                            </div>
+                            <div class="stock-detail-stats">
+                                <div class="stock-stat">
+                                    <div class="stat-value">${detail.weight_percent?.toFixed(1) || 0}%</div>
+                                    <div class="stat-label">Weight</div>
+                                </div>
+                                <div class="stock-stat">
+                                    <div class="stat-value">₹${(detail.money_allocated || 0).toLocaleString()}</div>
+                                    <div class="stat-label">Allocated</div>
+                                </div>
+                                <div class="stock-stat">
+                                    <div class="stat-value ${profitClass}">₹${actualProfit.toFixed(2)}</div>
+                                    <div class="stat-label">Actual Profit</div>
+                                </div>
+                                <div class="stock-stat">
+                                    <div class="stat-value">${daysCompleted}/${totalDays}</div>
+                                    <div class="stat-label">Days</div>
+                                </div>
+                                <span class="expand-icon">▼</span>
+                            </div>
+                        </div>
+                        <div class="stock-detail-content" id="stock-detail-content-${idx}">
+                            <!-- Estimates Section -->
+                            <div class="estimates-section">
+                                <h5>📊 Estimated Profits</h5>
+                                <div class="estimates-grid">
+                                    <div class="estimate-card">
+                                        <div class="est-value">${formatMoney(detail.estimated_profit_average)}</div>
+                                        <div class="est-label">Based on Average</div>
+                                    </div>
+                                    <div class="estimate-card">
+                                        <div class="est-value">${formatMoney(detail.estimated_profit_vgap)}</div>
+                                        <div class="est-label">Based on V-Gap</div>
+                                    </div>
+                                    <div class="estimate-card">
+                                        <div class="est-value">${formatMoney(detail.estimated_profit_p5)}</div>
+                                        <div class="est-label">Based on P5</div>
+                                    </div>
+                                    <div class="estimate-card">
+                                        <div class="est-value">${formatMoney(detail.estimated_profit_p10)}</div>
+                                        <div class="est-label">Based on P10</div>
+                                    </div>
+                                    <div class="estimate-card">
+                                        <div class="est-value">${formatMoney(detail.estimated_profit_p20)}</div>
+                                        <div class="est-label">Based on P20</div>
+                                    </div>
+                                    <div class="estimate-card">
+                                        <div class="est-value">${formatMoney(detail.estimated_profit_p40)}</div>
+                                        <div class="est-label">Based on P40</div>
+                                    </div>
+                                    <div class="estimate-card">
+                                        <div class="est-value">${formatMoney(detail.estimated_profit_p50)}</div>
+                                        <div class="est-label">Based on P50</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Day-by-Day Details -->
+                            <div class="days-section">
+                                <h5>📅 Day-by-Day Execution Details</h5>
+                                ${dayDetailsHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function renderDayExecution(day) {
+            const statusClass = day.status || 'pending';
+            const profit = day.profit !== null && day.profit !== undefined ? day.profit : null;
+            const profitClass = profit !== null ? (profit > 0 ? 'positive' : (profit < 0 ? 'negative' : '')) : '';
+            
+            const formatTask = (task, type) => {
+                if (!task) {
+                    return `<p style="color: #666; font-size: 0.8rem;">No ${type} order data</p>`;
+                }
+                
+                const shares = task.shares_bought || task.current_shares || 0;
+                const price = task.price_per_share || task.price_during_order || 0;
+                const amount = task.total_amount || (shares * price) || 0;
+                const status = task.task_status || 'pending';
+                
+                return `
+                    <div class="order-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Status:</span>
+                            <span class="detail-value" style="text-transform: capitalize;">${status}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Shares:</span>
+                            <span class="detail-value">${shares}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Price:</span>
+                            <span class="detail-value">₹${parseFloat(price).toFixed(2)}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Amount:</span>
+                            <span class="detail-value">₹${parseFloat(amount).toFixed(2)}</span>
+                        </div>
+                        ${task.executed_at ? `<div class="detail-row"><span class="detail-label">Executed:</span><span class="detail-value">${task.executed_at}</span></div>` : ''}
+                    </div>
+                `;
+            };
+            
+            return `
+                <div class="day-execution-item">
+                    <div class="day-execution-header">
+                        <span class="day-label">${day.day}</span>
+                        <span class="day-status ${statusClass}">${day.status || 'pending'}</span>
+                    </div>
+                    <div class="day-execution-body">
+                        <div class="order-card buy-order">
+                            <div class="order-type-label">🟢 Buy Order</div>
+                            ${formatTask(day.buy, 'buy')}
+                        </div>
+                        <div class="order-card sell-order">
+                            <div class="order-type-label">🔴 Sell Order</div>
+                            ${formatTask(day.sell, 'sell')}
+                        </div>
+                        <div class="order-card profit-card">
+                            <div class="profit-amount ${profitClass}">
+                                ${profit !== null ? `₹${parseFloat(profit).toFixed(2)}` : 'Pending'}
+                            </div>
+                            <div class="profit-label">Day Profit/Loss</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function toggleStockDetails(index) {
+            const content = document.getElementById(`stock-detail-content-${index}`);
+            const header = content.previousElementSibling;
+            
+            content.classList.toggle('show');
+            header.classList.toggle('expanded');
+        }
+        
+        function showExecutionsList() {
+            document.getElementById('executionDetailsView').classList.add('hidden');
+            document.getElementById('executionsListView').classList.remove('hidden');
+            currentExecutionData = null;
+        }
+        
+        // Load executions when switching to the tab
+        function initExecutionsTab() {
+            loadExecutions(1);
+        }
     </script>
 </body>
 </html>
