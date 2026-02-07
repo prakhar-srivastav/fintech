@@ -254,6 +254,13 @@ class KiteDataFetcher:
 
         return {'error': 'Max retries reached'}
     
+    def refresh_access_token(self):
+        """Refresh access token"""
+        new_token = self.generate_access_token()
+        self.kite.set_access_token(new_token)
+        logger.info("Access token refreshed successfully")
+        return new_token
+
     def _fetch_stocks(
         self,
         stock_list: List[str],
