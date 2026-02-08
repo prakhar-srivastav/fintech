@@ -10,12 +10,6 @@ from data_ingester_client import DataIngesterClient
 from db_client import DBClient
 from collections import deque
 
-"""
-TODO: 
-1. ui fix : remove vgap and add probability threshold
-2. select all options in ui that should run all stock of a given exchange
-"""
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,

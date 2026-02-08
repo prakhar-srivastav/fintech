@@ -140,6 +140,9 @@ class TaskHandler:
                 # Create next buy task
                 # Calculate next day_of_execution (it's a date string like '2026-01-26')
                 current_date = datetime.strptime(str(task['day_of_execution']), '%Y-%m-%d')
+                # if current_date is a friday, skip to next monday
+                if current_date.weekday() == 4:
+                    current_date += timedelta(days=2)
                 next_date = (current_date + timedelta(days=1)).strftime('%Y-%m-%d')
                 
                 new_task = {
