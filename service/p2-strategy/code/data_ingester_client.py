@@ -3,7 +3,7 @@ import logging
 import requests
 from typing import Optional, Dict, List, Any
 from datetime import datetime, timedelta
-
+import time
 logger = logging.getLogger(__name__)
 
 class DataIngesterClient:
@@ -76,7 +76,8 @@ class DataIngesterClient:
         exchanges: List[str],
         granularity: str = '5minute',
         start_date: Optional[str] = None,
-        end_date: Optional[str] = None
+        end_date: Optional[str] = None,
+        retry: int = 3
     ) -> Dict[str, Any]:
         """
         Trigger sync for specified stocks.
@@ -91,8 +92,16 @@ class DataIngesterClient:
             }
         }
         logger.info(f"Triggering sync for stocks: {stocks} on exchanges: {exchanges}")
-        return self._make_request('POST', '/sync', data=data)
-    
+        for attempt in range(1, retry + 1):
+            _request = self._make_request('POST', '/sync', data=data)
+            if 'error' in _request:
+                logger.error(f"Sync failed: {_request['error']}")
+                if attempt < retry:
+                    logger.info(f"Retrying sync... ({retry - attempt} attempts left)")
+                    time.sleep(2)
+                    continue
+            return _request
+
 _ingester_client = None
 
 def get_ingester_client() -> DataIngesterClient:
