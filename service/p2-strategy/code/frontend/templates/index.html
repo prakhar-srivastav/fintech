@@ -1486,16 +1486,10 @@
                     <h3>Strategy Parameters</h3>
                     
                     <div class="input-group">
-                        <label>Vertical Gaps</label>
-                        <div class="chip-input" id="verticalGapsChips">
-                            <div class="chip">0.5 <span class="remove" onclick="removeChip('verticalGaps', 0.5)">×</span></div>
-                            <div class="chip">1 <span class="remove" onclick="removeChip('verticalGaps', 1)">×</span></div>
-                            <div class="chip">2 <span class="remove" onclick="removeChip('verticalGaps', 2)">×</span></div>
-                        </div>
-                        <div class="chip-add">
-                            <input type="number" id="newVerticalGap" step="0.1" placeholder="Add">
-                            <button onclick="addChip('verticalGaps')">+</button>
-                        </div>
+                        <label>Threshold Probability</label>
+                        <input type="number" id="thresholdProb" step="0.05" min="0" max="1" value="0.8" 
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <small style="color: #666;">Minimum exceed probability (0-1, default: 0.8)</small>
                     </div>
                     
                     <div class="input-group">
@@ -1563,11 +1557,19 @@
                 <div class="config-section">
                     <h3>NSE Stocks</h3>
                     <div style="margin-bottom: 10px;">
-                        <button class="toggle-btn" onclick="toggleAllStocks('nse', true)">Select All</button>
-                        <button class="toggle-btn" onclick="toggleAllStocks('nse', false)">Clear All</button>
+                        <label style="display: inline-flex; align-items: center; gap: 5px; margin-right: 15px; font-weight: bold; color: #4CAF50;">
+                            <input type="checkbox" id="includeAllNse" onchange="toggleIncludeAll('nse')"> 
+                            Include ALL NSE stocks (fetched at runtime)
+                        </label>
                     </div>
-                    <div class="checkbox-group" id="nseStocks">
-                        <!-- Will be populated dynamically -->
+                    <div id="nseStocksSection">
+                        <div style="margin-bottom: 10px;">
+                            <button class="toggle-btn" onclick="toggleAllStocks('nse', true)">Select All</button>
+                            <button class="toggle-btn" onclick="toggleAllStocks('nse', false)">Clear All</button>
+                        </div>
+                        <div class="checkbox-group" id="nseStocks">
+                            <!-- Will be populated dynamically -->
+                        </div>
                     </div>
                 </div>
 
@@ -1575,11 +1577,19 @@
                 <div class="config-section">
                     <h3>BSE Stocks</h3>
                     <div style="margin-bottom: 10px;">
-                        <button class="toggle-btn" onclick="toggleAllStocks('bse', true)">Select All</button>
-                        <button class="toggle-btn" onclick="toggleAllStocks('bse', false)">Clear All</button>
+                        <label style="display: inline-flex; align-items: center; gap: 5px; margin-right: 15px; font-weight: bold; color: #2196F3;">
+                            <input type="checkbox" id="includeAllBse" onchange="toggleIncludeAll('bse')"> 
+                            Include ALL BSE stocks (fetched at runtime)
+                        </label>
                     </div>
-                    <div class="checkbox-group" id="bseStocks">
-                        <!-- Will be populated dynamically -->
+                    <div id="bseStocksSection">
+                        <div style="margin-bottom: 10px;">
+                            <button class="toggle-btn" onclick="toggleAllStocks('bse', true)">Select All</button>
+                            <button class="toggle-btn" onclick="toggleAllStocks('bse', false)">Clear All</button>
+                        </div>
+                        <div class="checkbox-group" id="bseStocks">
+                            <!-- Will be populated dynamically -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1849,7 +1859,7 @@
     <script>
         // Configuration state
         let config = {
-            verticalGaps: [0.5, 1, 2],
+            thresholdProb: 0.8,
             horizontalGaps: [2],
             continuousDays: [3, 5, 7, 10],
             nseStocks: [],
@@ -1939,6 +1949,23 @@
             updateStockSelection(exchange);
         }
 
+        function toggleIncludeAll(exchange) {
+            const checkbox = document.getElementById('includeAll' + exchange.charAt(0).toUpperCase() + exchange.slice(1));
+            const section = document.getElementById(exchange + 'StocksSection');
+            
+            if (checkbox.checked) {
+                // Disable the manual selection section
+                section.style.opacity = '0.5';
+                section.style.pointerEvents = 'none';
+                // Clear manual selections since we're using "include all"
+                toggleAllStocks(exchange, false);
+            } else {
+                // Enable the manual selection section
+                section.style.opacity = '1';
+                section.style.pointerEvents = 'auto';
+            }
+        }
+
         function updateStockSelection(exchange) {
             const container = document.getElementById(exchange + 'Stocks');
             const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
@@ -1948,7 +1975,6 @@
         function addChip(field) {
             // Map field names to input IDs
             const inputIdMap = {
-                'verticalGaps': 'newVerticalGap',
                 'horizontalGaps': 'newHorizontalGap',
                 'continuousDays': 'newContinuousDays'
             };
@@ -1978,19 +2004,27 @@
 
         function resetConfig() {
             config = {
-                verticalGaps: [0.5, 1, 2],
+                thresholdProb: 0.8,
                 horizontalGaps: [2],
                 continuousDays: [3, 5, 7, 10],
                 nseStocks: [],
                 bseStocks: []
             };
             
-            renderChips('verticalGaps');
+            document.getElementById('thresholdProb').value = '0.8';
             renderChips('horizontalGaps');
             renderChips('continuousDays');
             
             toggleAllStocks('nse', false);
             toggleAllStocks('bse', false);
+            
+            // Reset "Include All" checkboxes
+            document.getElementById('includeAllNse').checked = false;
+            document.getElementById('includeAllBse').checked = false;
+            document.getElementById('nseStocksSection').style.opacity = '1';
+            document.getElementById('nseStocksSection').style.pointerEvents = 'auto';
+            document.getElementById('bseStocksSection').style.opacity = '1';
+            document.getElementById('bseStocksSection').style.pointerEvents = 'auto';
             
             setDefaultDates();
             document.getElementById('granularity').value = '3minute';
@@ -2002,19 +2036,22 @@
         async function runStrategy() {
             const nseStocks = config.nseStocks || [];
             const bseStocks = config.bseStocks || [];
+            const includeAllNse = document.getElementById('includeAllNse').checked;
+            const includeAllBse = document.getElementById('includeAllBse').checked;
+            const thresholdProb = parseFloat(document.getElementById('thresholdProb').value) || 0.8;
             
-            if (nseStocks.length === 0 && bseStocks.length === 0) {
-                showError('Please select at least one stock');
+            if (nseStocks.length === 0 && bseStocks.length === 0 && !includeAllNse && !includeAllBse) {
+                showError('Please select at least one stock or check "Include ALL" option');
                 return;
             }
             
-            if (config.verticalGaps.length === 0) {
-                showError('Please add at least one vertical gap');
+            if (thresholdProb < 0 || thresholdProb > 1) {
+                showError('Threshold probability must be between 0 and 1');
                 return;
             }
             
             const payload = {
-                vertical_gaps: config.verticalGaps,
+                threshold_prob: thresholdProb,
                 horizontal_gaps: config.horizontalGaps,
                 continuous_days: config.continuousDays,
                 granularity: document.getElementById('granularity').value,
@@ -2022,6 +2059,8 @@
                 end_date: document.getElementById('endDate').value,
                 nse_stocks: nseStocks,
                 bse_stocks: bseStocks,
+                include_all_nse: includeAllNse,
+                include_all_bse: includeAllBse,
                 sync_data: document.getElementById('syncData').checked
             };
             

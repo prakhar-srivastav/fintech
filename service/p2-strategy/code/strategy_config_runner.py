@@ -178,86 +178,6 @@ def find_best_points_for_symbol(symbol: str,
     continuous_days=continuous_days)
     return points
 
-NSE_NIFTY_50 = {
-    "ADANIENT": "Adani Enterprises",
-    "ADANIPORTS": "Adani Ports and SEZ",
-    "APOLLOHOSP": "Apollo Hospitals",
-    "ASIANPAINT": "Asian Paints",
-    "AXISBANK": "Axis Bank",
-    "BAJAJ-AUTO": "Bajaj Auto",
-    "BAJFINANCE": "Bajaj Finance",
-    "BAJAJFINSV": "Bajaj Finserv",
-    "BEL": "Bharat Electronics",
-    "BHARTIARTL": "Bharti Airtel",
-    "CIPLA": "Cipla",
-    "COALINDIA": "Coal India",
-    "DRREDDY": "Dr Reddy's Laboratories",
-    "EICHERMOT": "Eicher Motors",
-    "GRASIM": "Grasim Industries",
-    "HCLTECH": "HCL Technologies",
-    "HDFCBANK": "HDFC Bank",
-    "HDFCLIFE": "HDFC Life Insurance",
-    "HINDALCO": "Hindalco Industries",
-    "HINDUNILVR": "Hindustan Unilever",
-    "ICICIBANK": "ICICI Bank",
-    "ITC": "ITC",
-    "KOTAKBANK": "Kotak Mahindra Bank",
-    "LT": "Larsen & Toubro",
-    "M&M": "Mahindra & Mahindra",
-    "MARUTI": "Maruti Suzuki",
-    "NESTLEIND": "Nestle India",
-    "NTPC": "NTPC",
-    "ONGC": "ONGC",
-    "POWERGRID": "Power Grid Corporation",
-    "RELIANCE": "Reliance Industries",
-    "SBILIFE": "SBI Life Insurance",
-    "SBIN": "State Bank of India",
-    "SHRIRAMFIN": "Shriram Finance",
-    "SUNPHARMA": "Sun Pharmaceutical",
-    "TCS": "Tata Consultancy Services",
-    "TATACONSUM": "Tata Consumer Products",
-    "TATAMOTORS": "Tata Motors",
-    "TATASTEEL": "Tata Steel",
-    "TECHM": "Tech Mahindra",
-    "TITAN": "Titan Company",
-    "TRENT": "Trent",
-    "ULTRACEMCO": "UltraTech Cement",
-    "WIPRO": "Wipro"
-}
-
-BSE_TOP_50 = {
-    "RELIANCE": "Reliance Industries",
-    "HDFCBANK": "HDFC Bank",
-    "BHARTIARTL": "Bharti Airtel",
-    "TCS": "Tata Consultancy Services",
-    "ICICIBANK": "ICICI Bank",
-    "SBIN": "State Bank of India",
-    "INFY": "Infosys",
-    "BAJFINANCE": "Bajaj Finance",
-    "HINDUNILVR": "Hindustan Unilever",
-    "LICI": "Life Insurance Corporation of India",
-    "ITC": "ITC",
-    "MARUTI": "Maruti Suzuki",
-    "HCLTECH": "HCL Technologies",
-    "SUNPHARMA": "Sun Pharmaceutical",
-    "AXISBANK": "Axis Bank",
-    "KOTAKBANK": "Kotak Mahindra Bank",
-    "ULTRACEMCO": "UltraTech Cement",
-    "BAJAJFINSV": "Bajaj Finserv",
-    "NTPC": "NTPC",
-    "TITAN": "Titan Company",
-    "POWERGRID": "Power Grid Corporation",
-    "ONGC": "ONGC",
-    "ASIANPAINT": "Asian Paints",
-    "ADANIENT": "Adani Enterprises",
-    "ADANIPORTS": "Adani Ports and SEZ",
-    "COALINDIA": "Coal India",
-    "M&M": "Mahindra & Mahindra",
-    "LT": "Larsen & Toubro",
-    "NESTLEIND": "Nestle India",
-    "TECHM": "Tech Mahindra"
-}
-
 def decorate_points(points: List[Dict[str, Any]], metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Add metadata to each point"""
     for point in points:
@@ -459,6 +379,8 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> 
         "end_date": "2026-01-10",
         "nse_stocks": ["RELIANCE", "TCS"],
         "bse_stocks": ["HDFCBANK"],
+        "include_all_nse": false,
+        "include_all_bse": false
     }
     
     Returns:
@@ -469,14 +391,32 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> 
     data_ingester_client = DataIngesterClient(base_url=DATA_INGESTER_URL, timeout=120)
 
     # Extract configuration with defaults
-    vertical_gaps = config.get('vertical_gaps', [0.5, 1, 2])
+    threshold_prob = config.get('threshold_prob', 0.8)
     horizontal_gaps = config.get('horizontal_gaps', [2])
     continuous_days_list = config.get('continuous_days', [3, 5, 7, 10])
     granularity = config.get('granularity', '3minute')
     start_date = config.get('start_date')
     end_date = config.get('end_date')
-    nse_stocks = config.get('nse_stocks', data_ingester_client.get_symbols(exchange='NSE'))
-    bse_stocks = config.get('bse_stocks', [])
+    
+    # Handle "include all" flags - fetch all stocks from data ingester if enabled
+    include_all_nse = config.get('include_all_nse', False)
+    include_all_bse = config.get('include_all_bse', False)
+    
+    if include_all_nse:
+        logger.info("Fetching all NSE stocks from data ingester...")
+        nse_symbols_response = data_ingester_client.get_symbols(exchange='NSE')
+        nse_stocks = list(nse_symbols_response.get('symbols', {}).keys()) if isinstance(nse_symbols_response, dict) else []
+        logger.info(f"Fetched {len(nse_stocks)} NSE stocks")
+    else:
+        nse_stocks = config.get('nse_stocks', [])
+    
+    if include_all_bse:
+        logger.info("Fetching all BSE stocks from data ingester...")
+        bse_symbols_response = data_ingester_client.get_symbols(exchange='BSE')
+        bse_stocks = list(bse_symbols_response.get('symbols', {}).keys()) if isinstance(bse_symbols_response, dict) else []
+        logger.info(f"Fetched {len(bse_stocks)} BSE stocks")
+    else:
+        bse_stocks = config.get('bse_stocks', [])
 
     # Use default dates if not provided
     if not start_date or not end_date:
@@ -484,18 +424,6 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> 
     
     # Initialize DB client
     db_client = DBClient(DB_CONFIG)
-    
-    # Create strategy run record
-    run_config = {
-        'vertical_gaps': vertical_gaps,
-        'horizontal_gaps': horizontal_gaps,
-        'continuous_days': continuous_days_list,
-        'granularity': granularity,
-        'start_date': start_date,
-        'end_date': end_date,
-        'nse_stocks': nse_stocks,
-        'bse_stocks': bse_stocks
-    }
     
     
     master_data = []
@@ -516,7 +444,6 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> 
                     l_vgap = 0
                     r_vgap = 200
                     max_itr = 100
-                    threshold_prob = 0.8
                     best_point = None  # Track the best point found during binary search
                     best_valid_point = None  # Track the best point that meets threshold
                     
@@ -575,7 +502,6 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> 
                     l_vgap = 0
                     r_vgap = 200
                     max_itr = 100
-                    threshold_prob = 0.8
                     best_point = None  # Track the best point found during binary search
                     best_valid_point = None  # Track the best point that meets threshold
                     
