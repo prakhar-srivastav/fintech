@@ -93,7 +93,7 @@ spec:
             - name: DB_PORT
               value: {{ .Values.DB_CONFIG.DB_PORT | quote }}
             - name: POLL_INTERVAL
-              value: {{ .Values.POLLER_CONFIG.POLL_INTERVAL | quote }}
+              value: {{ .Values.configPoller.pollerConfig.pollInterval | quote }}
             - name: DATA_INGESTER_URL
               value: {{ .Values.DATA_INGESTER_URL | quote }}
           resources:
@@ -139,7 +139,7 @@ spec:
             - name: DB_PORT
               value: {{ .Values.DB_CONFIG.DB_PORT | quote }}
             - name: POLL_INTERVAL
-              value: {{ .Values.POLLER_CONFIG.POLL_INTERVAL | quote }}
+              value: {{ .Values.executionPoller.pollerConfig.pollInterval | quote }}
           resources:
             {{- toYaml .Values.executionPoller.resources | nindent 12 }}
 {{- end }}
@@ -183,9 +183,11 @@ spec:
             - name: DB_PORT
               value: {{ .Values.DB_CONFIG.DB_PORT | quote }}
             - name: POLL_INTERVAL
-              value: {{ .Values.POLLER_CONFIG.POLL_INTERVAL | quote }}
+              value: {{ .Values.taskHandler.pollerConfig.pollInterval | quote }}
+            - name: BUFFER
+              value: {{ .Values.taskHandler.pollerConfig.buffer | quote }}
             - name: BROKER_MIDDLEWARE_URL
-              value: "http://broker-middleware.fintech.svc.cluster.local:5000"
+              value: {{ .Values.BROKER_MIDDLEWARE_URL | quote }}
           resources:
             {{- toYaml .Values.taskHandler.resources | nindent 12 }}
 {{- end }}
@@ -229,7 +231,9 @@ spec:
             - name: DB_PORT
               value: {{ .Values.DB_CONFIG.DB_PORT | quote }}
             - name: POLL_INTERVAL
-              value: {{ .Values.POLLER_CONFIG.POLL_INTERVAL | quote }}
+              value: {{ .Values.taskWatcher.pollerConfig.pollInterval | quote }}
+            - name: BUFFER
+              value: {{ .Values.taskWatcher.pollerConfig.buffer | quote }}
           resources:
             {{- toYaml .Values.taskWatcher.resources | nindent 12 }}
 {{- end }}

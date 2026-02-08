@@ -9,7 +9,7 @@ import os
 import time
 import logging
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from db_client import DBClient
 
 logging.basicConfig(
@@ -17,6 +17,9 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# IST timezone (UTC+5:30)
+IST = timezone(timedelta(hours=5, minutes=30))
 
 # Configuration
 BROKER_MIDDLEWARE_URL = os.getenv('BROKER_MIDDLEWARE_URL', 'http://localhost:5000')
@@ -77,7 +80,7 @@ class TaskHandler:
                 'quantity': int(task['current_shares']),
                 'stimulate_mode': task['stimulate_mode']  # Note: broker uses 'stimulate_mode'
             },
-            timeout=60
+            timeout=5
         )
         return response.json()
      
@@ -118,7 +121,7 @@ class TaskHandler:
                 'execution_detail_id': task['execution_detail_id'],
                 'timestamp_of_execution': task['y'],
                 'day_of_execution': task['day_of_execution'],
-                'current_money': 0,
+                'current_money': task['current_money'],  # BUY doesn't change money immediately
                 'current_shares': result['shares_bought'],
                 'order_type': 'sell',
                 'stimulate_mode': task['stimulate_mode'],
@@ -141,9 +144,9 @@ class TaskHandler:
                 
                 new_task = {
                     'execution_detail_id': task['execution_detail_id'],
-                    'timestamp_of_execution': None,
+                    'timestamp_of_execution': task['x'],
                     'day_of_execution': next_date,
-                    'current_money': result['total_amount'],  # SELL returns total_amount, not money_provided
+                    'current_money': task['current_money'],  # SELL returns total_amount, but we want to use current_money for next buy
                     'current_shares': 0,
                     'order_type': 'buy',
                     'stimulate_mode': task['stimulate_mode'],
@@ -263,8 +266,8 @@ class TaskHandler:
         
         while True:
             try:
-                # Calculate seconds since midnight today
-                now = datetime.now()
+                # Calculate seconds since midnight today (IST)
+                now = datetime.now(IST)
                 midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
                 start_time = int((now - midnight).total_seconds())
 

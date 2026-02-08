@@ -16,10 +16,7 @@ DB_CONFIG:
   DB_PORT: ""
 
 DATA_INGESTER_URL: http://data-ingester.fintech.svc.cluster.local:8000
-
-# Poller configuration
-POLLER_CONFIG:
-  POLL_INTERVAL: ""
+BROKER_MIDDLEWARE_URL: http://broker-middleware.fintech.svc.cluster.local:5000
 
 # ====================================
 # Frontend Service (app.py)
@@ -44,6 +41,8 @@ frontend:
 # ====================================
 configPoller:
   enabled: true
+  pollerConfig:
+    pollInterval: "60"
   replicaCount: 1
   serviceArg: "config-poller"
   resources:
@@ -59,6 +58,8 @@ configPoller:
 # ====================================
 executionPoller:
   enabled: true
+  pollerConfig:
+    pollInterval: "60"
   replicaCount: 1
   serviceArg: "execution-poller"
   resources:
@@ -74,6 +75,9 @@ executionPoller:
 # ====================================
 taskHandler:
   enabled: true
+  pollerConfig:
+    pollInterval: "10"
+    buffer: "120"
   replicaCount: 1
   serviceArg: "task-handler"
   resources:
@@ -89,6 +93,9 @@ taskHandler:
 # ====================================
 taskWatcher:
   enabled: true
+  pollerConfig:
+    pollInterval: "1800"
+    buffer: "600"
   replicaCount: 1
   serviceArg: "task-watcher"
   resources:

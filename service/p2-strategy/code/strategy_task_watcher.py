@@ -20,7 +20,7 @@ TODO: send alert for failures
 import os
 import time
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from db_client import DBClient
 
 logging.basicConfig(
@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 # Configuration
 POLL_INTERVAL = int(os.getenv('POLL_INTERVAL', '1800'))  # 30 minutes
 BUFFER = int(os.getenv('BUFFER', '600'))  # 10 minutes grace period
+
+IST = timezone(timedelta(hours=5, minutes=30))
 
 # Database configuration
 DB_CONFIG = {
@@ -93,8 +95,8 @@ class TaskWatcher:
                     # Parse the day and add seconds since midnight
                     day_date = datetime.strptime(str(day_of_execution), "%Y-%m-%d")
                     scheduled_time = day_date + timedelta(seconds=int(timestamp_of_execution))
-                    
-                    if datetime.now() > scheduled_time + timedelta(seconds=BUFFER):
+
+                    if datetime.now(tz=IST) > scheduled_time + timedelta(seconds=BUFFER):
                         return True, f"Task {task['id']} is queued and scheduled time has passed by more than {BUFFER} seconds"
         
         return False, None
@@ -210,7 +212,7 @@ class TaskWatcher:
         while True:
             try:
                 logger.info("Running task watcher checks...")
-                logger.info(f"Current time: {datetime.now()}")
+                logger.info(f"Current time: {datetime.now(tz=IST)}")
                 t1 = time.time()
                 logger.info("Starting handle_1 checks...")
                 self.handle_1()
