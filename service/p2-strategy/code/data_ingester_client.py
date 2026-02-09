@@ -98,7 +98,7 @@ class DataIngesterClient:
                 logger.error(f"Sync failed: {_request['error']}")
                 if attempt < retry:
                     logger.info(f"Retrying sync... ({retry - attempt} attempts left)")
-                    time.sleep(2)
+                    time.sleep(60*attempt)  # Exponential backoff
                     continue
             return _request
 
