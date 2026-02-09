@@ -28,6 +28,109 @@ DB_CONFIG = {
     'port': int(os.environ.get('DB_PORT', '3306'))
 }
 
+TOP_100_NSE_STOCKS = [
+    "RELIANCE",
+    "TCS",
+    "HDFCBANK",
+    "ICICIBANK",
+    "BHARTIARTL",
+    "INFY",
+    "SBIN",
+    "ITC",
+    "HINDUNILVR",
+    "LT",
+    "BAJFINANCE",
+    "HCLTECH",
+    "MARUTI",
+    "AXISBANK",
+    "SUNPHARMA",
+    "KOTAKBANK",
+    "TITAN",
+    "ONGC",
+    "TATAMOTORS",
+    "ADANIENT",
+    "NTPC",
+    "ASIANPAINT",
+    "POWERGRID",
+    "M&M",
+    "ULTRACEMCO",
+    "TATASTEEL",
+    "BAJAJFINSV",
+    "COALINDIA",
+    "HINDALCO",
+    "WIPRO",
+    "JSWSTEEL",
+    "IOC",
+    "ADANIPORTS",
+    "NESTLEIND",
+    "GRASIM",
+    "TECHM",
+    "BPCL",
+    "DRREDDY",
+    "DIVISLAB",
+    "BRITANNIA",
+    "CIPLA",
+    "EICHERMOT",
+    "APOLLOHOSP",
+    "HEROMOTOCO",
+    "TATACONSUM",
+    "SBILIFE",
+    "BAJAJ-AUTO",
+    "HDFCLIFE",
+    "INDUSINDBK",
+    "GODREJCP",
+    "DABUR",
+    "ADANIGREEN",
+    "VEDL",
+    "PIDILITIND",
+    "SIEMENS",
+    "HAVELLS",
+    "DLF",
+    "BANKBARODA",
+    "AMBUJACEM",
+    "GAIL",
+    "SHREECEM",
+    "ICICIPRULI",
+    "ICICIGI",
+    "TRENT",
+    "TORNTPHARM",
+    "JINDALSTEL",
+    "PFC",
+    "RECLTD",
+    "CHOLAFIN",
+    "INDIGO",
+    "BHEL",
+    "ABB",
+    "CANBK",
+    "TATAPOWER",
+    "HAL",
+    "IRFC",
+    "ADANIPOWER",
+    "BEL",
+    "MARICO",
+    "PNB",
+    "ZOMATO",
+    "UNIONBANK",
+    "IOB",
+    "IDBI",
+    "NHPC",
+    "IRCTC",
+    "POLYCAB",
+    "PERSISTENT",
+    "MAXHEALTH",
+    "MPHASIS",
+    "COLPAL",
+    "NAUKRI",
+    "BERGEPAINT",
+    "AUROPHARMA",
+    "LUPIN",
+    "BOSCHLTD",
+    "HDFCAMC",
+    "MUTHOOTFIN",
+    "SBICARD",
+    "COFORGE",
+]
+
 def get_date_range():
     """Get default date range (last 3 months)"""
     end_date = datetime.now()
@@ -212,8 +315,9 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> 
     
     if include_all_nse:
         logger.info("Fetching all NSE stocks from data ingester...")
-        nse_symbols_response = data_ingester_client.get_symbols(exchange='NSE')
-        nse_stocks = list(nse_symbols_response.get('symbols', {}).keys()) if isinstance(nse_symbols_response, dict) else []
+        # nse_symbols_response = data_ingester_client.get_symbols(exchange='NSE')
+        # nse_stocks = nse_symbols_response['symbols']
+        nse_stocks = TOP_100_NSE_STOCKS  # Use predefined top 100 list for NSE
         logger.info(f"Fetched {len(nse_stocks)} NSE stocks")
     else:
         nse_stocks = config.get('nse_stocks', [])
@@ -221,7 +325,7 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> 
     if include_all_bse:
         logger.info("Fetching all BSE stocks from data ingester...")
         bse_symbols_response = data_ingester_client.get_symbols(exchange='BSE')
-        bse_stocks = list(bse_symbols_response.get('symbols', {}).keys()) if isinstance(bse_symbols_response, dict) else []
+        bse_stocks = bse_symbols_response['symbols']
         logger.info(f"Fetched {len(bse_stocks)} BSE stocks")
     else:
         bse_stocks = config.get('bse_stocks', [])
@@ -237,14 +341,18 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> 
     master_data = []
     total_combinations = (len(nse_stocks) + len(bse_stocks)) * len(horizontal_gaps) * len(continuous_days_list)
     processed = 0
+    rate_limiter = 0
     
     try:
-
         for symbol in nse_stocks:
             exchange = 'NSE'
             syncing_needed = True
             logger.info(f"Processing symbol {symbol} on exchange {exchange}")
             symbol_data = get_symbol_data(symbol, exchange, start_date, end_date, granularity, syncing_needed)
+            rate_limiter = (rate_limiter + 1) % 5
+            if rate_limiter == 0:
+                logger.info("Pausing for 5 seconds...")
+                time.sleep(5)
             for c_days in continuous_days_list:
                 logger.info(f"Processing {symbol} ({exchange}) with continuous_days={c_days}")
                 candidate_points = []
@@ -297,6 +405,10 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> 
             syncing_needed = True
             logger.info(f"Processing symbol {symbol} on exchange {exchange}")
             symbol_data = get_symbol_data(symbol, exchange, start_date, end_date, granularity, syncing_needed)
+            rate_limiter = (rate_limiter + 1) % 5
+            if rate_limiter == 0:
+                logger.info("Pausing for 5 seconds...")
+                time.sleep(5)
             for c_days in continuous_days_list:
                 logger.info(f"Processing {symbol} ({exchange}) with continuous_days={c_days}")
                 candidate_points = []
