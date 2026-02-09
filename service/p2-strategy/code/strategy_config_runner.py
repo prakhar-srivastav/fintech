@@ -9,6 +9,7 @@ import requests
 from data_ingester_client import DataIngesterClient
 from db_client import DBClient
 from collections import deque
+import time
 
 # Configure logging
 logging.basicConfig(
