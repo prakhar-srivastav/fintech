@@ -159,8 +159,8 @@ def generate_summary(strategy_id: str) -> Dict[str, Any]:
     symbol_scores = []
     
     for symbol, symbol_data in by_symbol.items():
-        # Sort configs by exceed_prob descending
-        symbol_data.sort(key=lambda x: (x.get('exceed_prob', 0), x.get('average', 0)), reverse=True)
+        # Sort configs by vertical_gap descending
+        symbol_data.sort(key=lambda x: (x.get('vertical_gap', 0), x.get('exceed_prob', 0)), reverse=True)
 
         # Get the best config
         best_config = symbol_data[0]
@@ -187,9 +187,9 @@ def generate_summary(strategy_id: str) -> Dict[str, Any]:
             'total_configs': len(symbol_data),
             'configs': configs_with_percentiles  # All configs for this symbol
         })
-    
-    # Sort by max exceed_prob
-    symbol_scores.sort(key=lambda x: (x['exceed_prob'], x['average']), reverse=True)
+
+    # Sort by max vertical_gap
+    symbol_scores.sort(key=lambda x: (x['vertical_gap'], x['exceed_prob']), reverse=True)
 
     return {
         'symbol_scores': symbol_scores,
@@ -217,9 +217,8 @@ def get_strategy_runs():
         
         result = db_client.get_strategy_runs(limit=limit, offset=offset)
         
-        # For completed runs, add summary info
         for run in result.get('runs', []):
-            if run.get('status') == 'completed' and run.get('result_count', 0) > 0:
+            if run.get('status') in ['completed', 'running']:
                 try:
                     # Get quick summary stats
                     summary = generate_summary(run['id'])

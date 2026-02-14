@@ -234,7 +234,7 @@ def find_best_points(symbol_data: Dict[str, Dict[str, Dict[str, Any]]],
                 'highest': _highest,
                 'lowest': _lowest
             })
-    scores.sort(key=lambda x: (x['exceeded'], x['average']), reverse=True)
+    scores.sort(key=lambda x: x['exceed_prob'], reverse=True)
     return scores
 
 def get_symbol_data(symbol: str, exchange: str, start_date: str, end_date: str, granularity: str, syncing_needed: bool = True):
@@ -277,6 +277,94 @@ def decorate_points(points: List[Dict[str, Any]], metadata: Dict[str, Any]) -> L
         point.update(metadata)
     return points
 
+def process_stock_by_exchange(symbols: List[str],
+                                exchange: str,
+                                config: Dict[str, Any], 
+                                strategy_id: str, 
+                                db_client: DBClient, 
+                                data_ingester_client: DataIngesterClient, 
+                                threshold_prob: float, 
+                                horizontal_gaps: List[float], 
+                                continuous_days_list: List[int], 
+                                start_date: str, 
+                                end_date: str, 
+                                granularity: str):
+    master_data = []
+    total_combinations = (len(symbols) * len(horizontal_gaps) * len(continuous_days_list))
+    processed = 0
+    rate_limiter = 0
+    try:
+        for symbol in symbols:
+            syncing_needed = True
+            logger.info(f"Processing symbol {symbol} on exchange {exchange}")
+            symbol_data = get_symbol_data(symbol, exchange, start_date, end_date, granularity, syncing_needed)
+            rate_limiter = (rate_limiter + 1) % 5
+            if rate_limiter == 0:
+                logger.info("Pausing for 5 seconds...")
+                time.sleep(5)
+            for c_days in continuous_days_list:
+                logger.info(f"Processing {symbol} ({exchange}) with continuous_days={c_days}")
+                candidate_points = []
+                for h_gap in horizontal_gaps:
+                    processed += 1
+                    logger.info(f"[{processed}/{total_combinations}] Evaluating {symbol} ({exchange}) with h_gap={h_gap}, c_days={c_days}")
+                    l_vgap = 0
+                    r_vgap = 200
+                    max_itr = 100
+                    best_point = None
+                    best_valid_point = None
+                    
+                    while r_vgap - l_vgap > 0.1 and max_itr > 0:
+                        v_gap = (l_vgap + r_vgap) / 2
+                        try:
+                            points = find_best_points(
+                                symbol_data=symbol_data,
+                                vertical_gap=v_gap,
+                                horizontal_gap=h_gap,
+                                continuous_days=c_days)
+                            if points:
+                                best_point = points[0]
+                                
+                                for point in points:
+                                    if point['exceed_prob'] >= threshold_prob:
+                                        best_point = point if point['average'] > best_point['average'] else best_point
+                                if best_point['exceed_prob'] >= threshold_prob:
+                                    best_point = decorate_points([best_point], {
+                                        'exchange': exchange,
+                                        'symbol': symbol,
+                                        'vertical_gap': v_gap,
+                                        'horizontal_gap': h_gap,
+                                        'continuous_days': c_days
+                                    })[0]
+                                    best_valid_point = best_point
+                                    l_vgap = v_gap  # Try higher v_gap
+                                else:
+                                    r_vgap = v_gap  # Try lower v_gap
+                            max_itr -= 1
+                        except Exception as e:
+                            logger.error(f"Error processing {symbol} ({exchange}): {e}")
+                            max_itr -= 1
+                            continue
+                    if best_valid_point:
+                        candidate_points.append(best_valid_point)
+                candidate_points.sort(key=lambda x: x['vertical_gap'], reverse=True)
+                if len(candidate_points) > 0:
+                    master_data.extend(candidate_points[:1])
+                if len(master_data) == 10:
+                    logger.info(f"Processed {processed}/{total_combinations} combinations, pausing for 5 seconds...")
+                    db_client.save_strategy_results(strategy_id, master_data)
+                    master_data = []  # Clear master data after saving
+                    logger.info(f"Saving {len(master_data)} results to database...")
+
+        if master_data:
+            logger.info(f"Saving remaining {len(master_data)} of {exchange} results to database...")
+            db_client.save_strategy_results(strategy_id, master_data)
+
+    except Exception as e:
+        logger.error(f"Strategy execution error for {strategy_id}: {e}")
+        raise
+ 
+
 def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> str:
     """
     Process strategy scheduler job from the poller.
@@ -301,6 +389,7 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> 
     logger.info(f"Processing strategy scheduler job with config: {config}")
     
     data_ingester_client = DataIngesterClient(base_url=DATA_INGESTER_URL, timeout=120)
+    db_client = DBClient(DB_CONFIG)
 
     # Extract configuration with defaults
     threshold_prob = config.get('threshold_prob', 0.8)
@@ -334,148 +423,10 @@ def process_strategy_scheduler_job(config: Dict[str, Any], strategy_id: str) -> 
     # Use default dates if not provided
     if not start_date or not end_date:
         start_date, end_date = get_date_range()
-    
-    # Initialize DB client
-    db_client = DBClient(DB_CONFIG)
-    
-    
-    master_data = []
-    total_combinations = (len(nse_stocks) + len(bse_stocks)) * len(horizontal_gaps) * len(continuous_days_list)
-    processed = 0
-    rate_limiter = 0
-    
-    try:
-        for symbol in nse_stocks:
-            exchange = 'NSE'
-            syncing_needed = True
-            logger.info(f"Processing symbol {symbol} on exchange {exchange}")
-            symbol_data = get_symbol_data(symbol, exchange, start_date, end_date, granularity, syncing_needed)
-            rate_limiter = (rate_limiter + 1) % 5
-            if rate_limiter == 0:
-                logger.info("Pausing for 5 seconds...")
-                time.sleep(5)
-            for c_days in continuous_days_list:
-                logger.info(f"Processing {symbol} ({exchange}) with continuous_days={c_days}")
-                candidate_points = []
-                for h_gap in horizontal_gaps:
-                    processed += 1
-                    logger.info(f"[{processed}/{total_combinations}] Evaluating {symbol} ({exchange}) with h_gap={h_gap}, c_days={c_days}")
-                    l_vgap = 0
-                    r_vgap = 200
-                    max_itr = 100
-                    best_point = None
-                    best_valid_point = None
-                    
-                    while r_vgap - l_vgap > 0.1 and max_itr > 0:
-                        v_gap = (l_vgap + r_vgap) / 2
-                        try:
-                            points = find_best_points(
-                                symbol_data=symbol_data,
-                                vertical_gap=v_gap,
-                                horizontal_gap=h_gap,
-                                continuous_days=c_days)
-                            if points:
-                                # Only take top result for this config
-                                current_point = points[0]
-                                current_point = decorate_points([current_point], {
-                                    'exchange': exchange,
-                                    'symbol': symbol,
-                                    'vertical_gap': v_gap,
-                                    'horizontal_gap': h_gap,
-                                    'continuous_days': c_days
-                                })[0]
-                                best_point = current_point  # Track latest point
-                                if current_point['exceed_prob'] >= threshold_prob:
-                                    best_valid_point = current_point  # Save valid point
-                                    l_vgap = v_gap  # Try higher v_gap
-                                else:
-                                    r_vgap = v_gap  # Try lower v_gap
-                            max_itr -= 1
-                        except Exception as e:
-                            logger.error(f"Error processing {symbol} ({exchange}): {e}")
-                            max_itr -= 1
-                            continue
-                    if best_valid_point:
-                        candidate_points.append(best_valid_point)    
-                candidate_points.sort(key=lambda x: (x['exceed_prob'], x['average']), reverse=True)
-                if len(candidate_points) > 0:
-                    master_data.extend(candidate_points[:1])
 
-        for symbol in bse_stocks:
-            exchange = 'BSE'
-            syncing_needed = True
-            logger.info(f"Processing symbol {symbol} on exchange {exchange}")
-            symbol_data = get_symbol_data(symbol, exchange, start_date, end_date, granularity, syncing_needed)
-            rate_limiter = (rate_limiter + 1) % 5
-            if rate_limiter == 0:
-                logger.info("Pausing for 5 seconds...")
-                time.sleep(5)
-            for c_days in continuous_days_list:
-                logger.info(f"Processing {symbol} ({exchange}) with continuous_days={c_days}")
-                candidate_points = []
-                for h_gap in horizontal_gaps:
-                    processed += 1
-                    logger.info(f"[{processed}/{total_combinations}] Evaluating {symbol} ({exchange}) with h_gap={h_gap}, c_days={c_days}")
+    process_stock_by_exchange(nse_stocks, 'NSE', config, strategy_id, db_client, data_ingester_client, threshold_prob, horizontal_gaps, continuous_days_list, start_date, end_date, granularity)
+    process_stock_by_exchange(bse_stocks, 'BSE', config, strategy_id, db_client, data_ingester_client, threshold_prob, horizontal_gaps, continuous_days_list, start_date, end_date, granularity)
 
-                    l_vgap = 0
-                    r_vgap = 200
-                    max_itr = 100
-                    best_point = None
-                    best_valid_point = None
-
-                    while r_vgap - l_vgap > 0.1 and max_itr > 0:
-                        v_gap = (l_vgap + r_vgap) / 2
-                        try:
-                            points = find_best_points(
-                                symbol_data=symbol_data,
-                                vertical_gap=v_gap,
-                                horizontal_gap=h_gap,
-                                continuous_days=c_days
-                            )
-                            
-                            if points:
-                                # Only take top result for this config
-                                current_point = points[0]
-                                current_point = decorate_points([current_point], {
-                                    'exchange': exchange,
-                                    'symbol': symbol,
-                                    'vertical_gap': v_gap,
-                                    'horizontal_gap': h_gap,
-                                    'continuous_days': c_days
-                                })[0]
-                                best_point = current_point  # Track latest point
-                                if current_point['exceed_prob'] >= threshold_prob:
-                                    best_valid_point = current_point  # Save valid point
-                                    l_vgap = v_gap  # Try higher v_gap
-                                else:
-                                    r_vgap = v_gap  # Try lower v_gap
-                            syncing_needed = False  # Only sync once per symbol
-                            max_itr -= 1
-                        except Exception as e:
-                            logger.error(f"Error processing {symbol} ({exchange}): {e}")
-                            max_itr -= 1
-                            continue
-                    if best_valid_point:
-                        candidate_points.append(best_valid_point)    
-                candidate_points.sort(key=lambda x: (x['exceed_prob'], x['average']), reverse=True)
-                if len(candidate_points) > 0:
-                    master_data.extend(candidate_points[:1])
-
-        # Sort results by exceed_prob and average
-        master_data.sort(key=lambda x: (x['exceed_prob'], x['average']), reverse=True)
-        
-        # Save results to database
-        if master_data:
-            logger.info(f"Saving {len(master_data)} results to database...")
-            db_client.save_strategy_results(strategy_id, master_data)
-            logger.info(f"Results saved successfully for strategy {strategy_id}")
-        else:
-            logger.warning(f"No results to save for strategy {strategy_id}")
-        
-    except Exception as e:
-        logger.error(f"Strategy execution error for {strategy_id}: {e}")
-        raise
-    
     return strategy_id
 
 if __name__ == '__main__':

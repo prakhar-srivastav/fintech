@@ -2417,12 +2417,15 @@
                     console.warn('Error parsing config for run', run.id, ':', e);
                 }
                 
-                // Build summary section for completed runs
+                // Build summary section for completed runs OR running runs with results
                 let summaryHtml = '';
-                if (run.status === 'completed' && run.summary) {
+                const hasResults = run.summary && (run.status === 'completed' || (run.status === 'running'));
+
+                if (hasResults) {
                     const topProb = run.summary.top_exceed_prob ? (run.summary.top_exceed_prob * 100).toFixed(1) + '%' : '-';
+                    const statusBadge = run.status === 'running' ? '<span style="background: #fbbf24; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 8px;">IN PROGRESS</span>' : '';
                     summaryHtml = '<div class="run-summary-preview">' +
-                        '<span class="summary-item">🏆 Best: <strong>' + (run.summary.top_symbol || '-') + '</strong> (' + (run.summary.top_exchange || '') + ')</span>' +
+                        '<span class="summary-item">🏆 Best: <strong>' + (run.summary.top_symbol || '-') + '</strong> (' + (run.summary.top_exchange || '') + ')' + statusBadge + '</span>' +
                         '<span class="summary-item">📈 Top Prob: <strong>' + topProb + '</strong></span>' +
                         '<span class="summary-item">📊 Symbols: <strong>' + (run.summary.total_symbols || 0) + '</strong></span>' +
                         '</div>';
@@ -2435,8 +2438,10 @@
                     summaryHtml = '<div class="run-status-message" style="color: ' + statusColor + ';">' + statusMsg + '</div>';
                 }
                 
-                const onclickAttr = run.status === 'completed' ? ' onclick="viewRunDetails(' + run.id + ')"' : '';
-                const disabledClass = run.status !== 'completed' ? ' disabled-run' : '';
+                // Allow clicking on completed runs OR running runs with results
+                const isClickable = run.status === 'completed' || (run.status === 'running' && (run.result_count || 0) > 0);
+                const onclickAttr = isClickable ? ' onclick="viewRunDetails(\'' + run.id + '\')"' : '';
+                const disabledClass = !isClickable ? ' disabled-run' : '';
                 
                 html += '<div class="run-item' + disabledClass + '"' + onclickAttr + '>' +
                     '<div class="run-info">' +
