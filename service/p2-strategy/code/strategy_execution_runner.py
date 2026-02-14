@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 from db_client import DBClient
 from datetime import datetime, timedelta
+from common_utility import get_next_business_day
 
 # Database configuration
 DB_CONFIG = {
@@ -46,7 +47,7 @@ def convert_to_second(timestamp_str):
 
 def create_initial_task(strategy_result):
     tomorrow = datetime.now() + timedelta(days=1)
-    day_of_execution = get_next_business_day(tomorrow.date(), strategy_result['exchange'], db_client).strftime('%Y-%m-%d')
+    day_of_execution = get_next_business_day(tomorrow.date(), strategy_result['exchange']).strftime('%Y-%m-%d')
     
     # Convert Decimal to float for calculation
     total_money = float(strategy_result['total_money'] or 0)
@@ -92,6 +93,7 @@ def process_strategy_execution_job(execution_id):
 
     for current in strategy_result_details:
         execution_detail_id = current['id']
+        db_client.change_strategy_execution_detail_status(execution_detail_id, 'running')
         strategy_result_id = current['strategy_result_id']
         logger.info(f"Processing strategy result ID: {strategy_result_id} for execution ID: {execution_id}")
         try:
