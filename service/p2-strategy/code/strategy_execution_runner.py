@@ -46,7 +46,7 @@ def convert_to_second(timestamp_str):
 
 def create_initial_task(strategy_result):
     tomorrow = datetime.now() + timedelta(days=1)
-    day_of_execution = tomorrow.strftime('%Y-%m-%d')
+    day_of_execution = get_next_business_day(tomorrow.date(), strategy_result['exchange'], db_client).strftime('%Y-%m-%d')
     
     # Convert Decimal to float for calculation
     total_money = float(strategy_result['total_money'] or 0)

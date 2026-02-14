@@ -11,6 +11,7 @@ import logging
 import requests
 from datetime import datetime, timedelta, timezone
 from db_client import DBClient
+from common_utility import get_next_business_day
 
 logging.basicConfig(
     level=logging.INFO,
@@ -143,7 +144,8 @@ class TaskHandler:
                 # if current_date is a friday, skip to next monday
                 if current_date.weekday() == 4:
                     current_date += timedelta(days=2)
-                next_date = (current_date + timedelta(days=1)).strftime('%Y-%m-%d')
+                # next_date = (current_date + timedelta(days=1)).strftime('%Y-%m-%d')
+                next_date = get_next_business_day((current_date + timedelta(days=1)).date(), task['exchange'], self.db).strftime('%Y-%m-%d')
                 
                 new_task = {
                     'execution_detail_id': task['execution_detail_id'],
